@@ -91,7 +91,7 @@ export default function App() {
               }
             />
             <Route
-              path="/dashboard/members/:memberId"
+              path="/dashboard/members/:id"
               element={
                 <ProtectedRoute role="admin">
                   <Dashboard>

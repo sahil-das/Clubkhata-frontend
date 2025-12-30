@@ -1,150 +1,156 @@
 import { useParams } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
-import { CheckCircle, IndianRupee } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 export default function MemberDetails() {
   const { memberId } = useParams();
   const { user } = useAuth();
 
-  /* ================= MOCK MEMBER DATA =================
-     (replace with backend API later)
-  ===================================================== */
-  const [member, setMember] = useState({
-    id: memberId,
-    name: "Rahul Kumar",
-    email: "rahul@clubname.com",
+  const [cycle, setCycle] = useState(null);
+  const [paidWeeks, setPaidWeeks] = useState([]);
+  const [selectedWeeks, setSelectedWeeks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    weeklyPayments: [
-      { week: 1, date: "2025-01-05" },
-      { week: 2, date: "2025-01-12" },
-      { week: 3, date: "2025-01-19" },
-    ],
+  /* ================= LOAD DATA ================= */
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const cycleRes = await api.get("/cycles/active");
+        setCycle(cycleRes.data.data);
 
-    // null => not contributed yet
-    pujaContribution: {
-      amount: 1500,
-      date: "2025-02-12",
-    },
-  });
+        const weeklyRes = await api.get(
+          `/weekly/member/${memberId}`
+        );
+        setPaidWeeks(weeklyRes.data.data.paidWeeks);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  /* ================= ADMIN INPUT STATE ================= */
-  const [pujaAmount, setPujaAmount] = useState(
-    member.pujaContribution?.amount || ""
-  );
+    loadData();
+  }, [memberId]);
 
-  /* ================= SAVE PUJA CONTRIBUTION ================= */
-  const savePujaContribution = () => {
-    if (!pujaAmount) return;
+  /* ================= SELECT WEEK ================= */
+  const toggleWeek = (week) => {
+    if (paidWeeks.includes(week)) return;
+
+    setSelectedWeeks((prev) =>
+      prev.includes(week)
+        ? prev.filter((w) => w !== week)
+        : [...prev, week]
+    );
+  };
+
+  /* ================= PAY SELECTED ================= */
+  const payWeeks = async () => {
+    if (selectedWeeks.length === 0) return;
 
     if (
       !window.confirm(
-        "Are you sure you want to save this Puja-time contribution?"
+        `Pay weeks: ${selectedWeeks.join(", ")} ?`
       )
     )
       return;
 
-    setMember({
-      ...member,
-      pujaContribution: {
-        amount: Number(pujaAmount),
-        date: new Date().toISOString().split("T")[0],
-      },
+    await api.post("/weekly/pay", {
+      userId: memberId,
+      cycleId: cycle._id,
+      weeks: selectedWeeks,
     });
+
+    setSelectedWeeks([]);
+
+    // reload status
+    const res = await api.get(
+      `/weekly/member/${memberId}`
+    );
+    setPaidWeeks(res.data.data.paidWeeks);
   };
 
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  if (!cycle) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-yellow-800">
+        <p className="font-medium">No active Puja cycle</p>
+        <p className="text-sm mt-1">
+          Admin must create a new cycle before contributions can start.
+        </p>
+      </div>
+    );
+  }
+
+  /* ================= RENDER ================= */
   return (
     <div className="space-y-6">
-      {/* ================= HEADER ================= */}
       <div>
         <h2 className="text-xl font-semibold">
-          {member.name}
+          Weekly Contributions
         </h2>
         <p className="text-sm text-gray-500">
-          {member.email}
+          {cycle.name} • ₹{cycle.weeklyAmount}/week
         </p>
       </div>
 
-      {/* ================= WEEKLY CONTRIBUTIONS ================= */}
-      <div className="bg-white p-6 rounded-xl shadow">
-        <h3 className="font-semibold mb-4">
-          Weekly Contributions
-        </h3>
+      {/* WEEK GRID */}
+      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 gap-3">
+        {Array.from(
+          { length: cycle.totalWeeks },
+          (_, i) => {
+            const week = i + 1;
+            const isPaid = paidWeeks.includes(week);
+            const isSelected =
+              selectedWeeks.includes(week);
 
-        {member.weeklyPayments.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-            {member.weeklyPayments.map((p) => (
+            return (
               <div
-                key={p.week}
-                className="bg-green-100 text-green-700 rounded-lg p-3 text-sm"
+                key={week}
+                onClick={() =>
+                  user.role === "admin" &&
+                  toggleWeek(week)
+                }
+                className={`p-3 rounded-lg text-center text-sm cursor-pointer select-none
+                  ${
+                    isPaid
+                      ? "bg-green-100 text-green-700"
+                      : isSelected
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100"
+                  }`}
               >
-                <div className="flex items-center gap-2">
-                  <CheckCircle size={14} />
-                  Week {p.week}
+                <div className="flex items-center justify-center gap-1">
+                  {isPaid && <CheckCircle size={14} />}
+                  W{week}
                 </div>
-                <p className="text-xs mt-1">
-                  {p.date}
-                </p>
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">
-            No weekly contributions yet.
-          </p>
+            );
+          }
         )}
       </div>
 
-      {/* ================= PUJA CONTRIBUTION (VIEW) ================= */}
-      <div className="bg-white p-6 rounded-xl shadow">
-        <h3 className="font-semibold mb-2">
-          Puja-time Contribution
-        </h3>
-
-        {member.pujaContribution ? (
-          <>
-            <p className="text-lg font-bold text-green-600 flex items-center gap-1">
-              <IndianRupee size={18} />
-              {member.pujaContribution.amount}
-            </p>
-            <p className="text-sm text-gray-500">
-              Paid on: {member.pujaContribution.date}
-            </p>
-          </>
-        ) : (
-          <p className="text-red-500 font-medium">
-            Not contributed yet
-          </p>
-        )}
-      </div>
-
-      {/* ================= ADMIN: ADD / UPDATE PUJA ================= */}
+      {/* ADMIN ACTION */}
       {user.role === "admin" && (
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h3 className="font-semibold mb-3">
-            Add / Update Puja-time Contribution
-          </h3>
-
-          <input
-            type="number"
-            placeholder="Enter amount"
-            value={pujaAmount}
-            onChange={(e) =>
-              setPujaAmount(e.target.value)
-            }
-            className="w-full border rounded-lg px-3 py-2 mb-4"
-          />
+        <div className="bg-white p-4 rounded-xl shadow">
+          <p className="text-sm mb-3">
+            Selected weeks:{" "}
+            <strong>
+              {selectedWeeks.join(", ") || "None"}
+            </strong>
+          </p>
 
           <button
-            onClick={savePujaContribution}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+            onClick={payWeeks}
+            disabled={selectedWeeks.length === 0}
+            className="bg-indigo-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg"
           >
-            Save Puja Contribution
+            Pay Selected Weeks
           </button>
-
-          <p className="text-xs text-gray-500 mt-2">
-            * Only admin can add or update Puja-time contributions
-          </p>
         </div>
       )}
     </div>
