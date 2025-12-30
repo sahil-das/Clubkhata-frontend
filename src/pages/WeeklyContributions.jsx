@@ -1,285 +1,251 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Undo2,
-} from "lucide-react";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
+import { exportWeeklyAllMembersPDF } from "../utils/exportWeeklyAllMembersPDF";
 
 export default function WeeklyContributions() {
   const { user } = useAuth();
-  const { weeklyTotal, setWeeklyTotal } = useFinance();
+  const { weeklyTotal, fetchCentralFund } = useFinance();
 
-  /* ===== SETTINGS ===== */
-  const [totalWeeks, setTotalWeeks] = useState(50);
-  const [weekAmount, setWeekAmount] = useState(100);
-
-  const [editSettings, setEditSettings] = useState(false);
-  const [tempWeeks, setTempWeeks] = useState(totalWeeks);
-  const [tempAmount, setTempAmount] = useState(weekAmount);
-
-  /* ===== MEMBERS (mock) ===== */
-  const [members, setMembers] = useState([
-    {
-      id: 1,
-      name: "Rahul Kumar",
-      email: "rahul@clubname.com",
-      payments: [{ week: 1, date: "2025-01-05" }],
-    },
-    {
-      id: 2,
-      name: "Amit Singh",
-      email: "amit@clubname.com",
-      payments: [],
-    },
-  ]);
-
+  const [members, setMembers] = useState([]);
+  const [cycle, setCycle] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({});
 
+  /* ================= LOAD DATA ================= */
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // 1️⃣ Active cycle
+        const cycleRes = await api.get("/cycles/active");
+        const activeCycle = cycleRes.data.data;
+        setCycle(activeCycle);
+
+        // 2️⃣ Members
+        const memberRes = await api.get("/members");
+        const memberList = memberRes.data.data;
+
+        // 3️⃣ Weekly status per member
+        const membersWithWeeks = await Promise.all(
+          memberList.map(async (m) => {
+            const weeklyRes = await api.get(
+              `/weekly/member/${m._id}`
+            );
+
+            return {
+              ...m,
+              weeks: weeklyRes.data.weeks,
+            };
+          })
+        );
+
+        setMembers(membersWithWeeks);
+
+        // 4️⃣ Sync central fund from backend
+        await fetchCentralFund();
+      } catch (err) {
+        console.error("Weekly load error", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  /* ================= HELPERS ================= */
   const visibleMembers =
     user.role === "admin"
       ? members
       : members.filter((m) => m.email === user.email);
 
   const toggleExpand = (id) =>
-    setExpanded((p) => ({ ...p, [id]: !p[id] }));
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  /* ===== PAY WEEK ===== */
-  const payWeek = (memberId, week) => {
-    setMembers((prev) =>
-      prev.map((m) => {
-        if (m.id !== memberId) return m;
-        if (
-          user.role !== "admin" &&
-          m.email !== user.email
+  /* ================= MARK PAID ================= */
+  const payWeek = async (memberId, week) => {
+    if (!window.confirm(`Mark Week ${week} as paid?`)) return;
+
+    try {
+      await api.post("/weekly/mark-paid", {
+        memberId,
+        weekNumber: week,
+      });
+
+      setMembers((prev) =>
+        prev.map((m) =>
+          m._id === memberId
+            ? {
+                ...m,
+                weeks: m.weeks.map((w) =>
+                  w.week === week
+                    ? {
+                        ...w,
+                        paid: true,
+                        paidAt: new Date().toISOString(),
+                      }
+                    : w
+                ),
+              }
+            : m
         )
-          return m;
+      );
 
-        if (m.payments.some((p) => p.week === week))
-          return m;
-
-        setWeeklyTotal((t) => t + weekAmount);
-
-        return {
-          ...m,
-          payments: [
-            ...m.payments,
-            {
-              week,
-              date: new Date()
-                .toISOString()
-                .split("T")[0],
-            },
-          ],
-        };
-      })
-    );
+      await fetchCentralFund();
+    } catch (err) {
+      console.error("Mark paid error", err);
+    }
   };
 
-  /* ===== UNDO ===== */
-  const undoPayment = (memberId, week) => {
-    if (!window.confirm("Undo this payment?"))
-      return;
+  /* ================= UNDO PAID ================= */
+  const undoPayment = async (memberId, week) => {
+    if (!window.confirm("Undo this payment?")) return;
 
-    setMembers((prev) =>
-      prev.map((m) => {
-        if (m.id !== memberId) return m;
-        if (!m.payments.find((p) => p.week === week))
-          return m;
+    try {
+      await api.post("/weekly/undo-paid", {
+        memberId,
+        weekNumber: week,
+      });
 
-        setWeeklyTotal((t) => t - weekAmount);
+      setMembers((prev) =>
+        prev.map((m) =>
+          m._id === memberId
+            ? {
+                ...m,
+                weeks: m.weeks.map((w) =>
+                  w.week === week
+                    ? { ...w, paid: false, paidAt: null }
+                    : w
+                ),
+              }
+            : m
+        )
+      );
 
-        return {
-          ...m,
-          payments: m.payments.filter(
-            (p) => p.week !== week
-          ),
-        };
-      })
-    );
+      await fetchCentralFund();
+    } catch (err) {
+      console.error("Undo payment error", err);
+    }
   };
 
+  /* ================= LOADING / EMPTY ================= */
+  if (loading) {
+    return (
+      <div className="p-6 text-center text-gray-500">
+        Loading weekly contributions…
+      </div>
+    );
+  }
+
+  if (!cycle) {
+    return (
+      <div className="p-6 text-center text-red-500">
+        No active Puja cycle found
+      </div>
+    );
+  }
+
+  /* ================= UI ================= */
   return (
     <div>
       <h2 className="text-xl font-semibold mb-6">
         Weekly Contributions
       </h2>
 
-      {/* ===== ADMIN SETTINGS ===== */}
+      {/* ===== CYCLE INFO ===== */}
+      <div className="bg-indigo-50 p-4 rounded-xl shadow mb-6 text-sm">
+        <p className="font-semibold">{cycle.name}</p>
+        <p>
+          Weeks: {cycle.totalWeeks} | Amount / week: ₹{" "}
+          {cycle.weeklyAmount}
+        </p>
+      </div>
+
+      {/* ===== EXPORT ===== */}
       {user.role === "admin" && (
-        <div className="bg-white p-4 rounded-xl shadow mb-6">
-          {!editSettings ? (
-            <div className="flex gap-6 items-center">
-              <div>
-                <p className="text-sm text-gray-500">
-                  Total Weeks
-                </p>
-                <p className="font-semibold">
-                  {totalWeeks}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">
-                  Amount / Week
-                </p>
-                <p className="font-semibold">
-                  ₹ {weekAmount}
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  setTempWeeks(totalWeeks);
-                  setTempAmount(weekAmount);
-                  setEditSettings(true);
-                }}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg"
-              >
-                Edit
-              </button>
-            </div>
-          ) : (
-            <div className="flex gap-4 items-end">
-              <input
-                type="number"
-                value={tempWeeks}
-                onChange={(e) =>
-                  setTempWeeks(Number(e.target.value))
-                }
-                className="border px-3 py-2 rounded-lg"
-              />
-              <input
-                type="number"
-                value={tempAmount}
-                onChange={(e) =>
-                  setTempAmount(Number(e.target.value))
-                }
-                className="border px-3 py-2 rounded-lg"
-              />
-
-              <button
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      "Confirm change?"
-                    )
-                  )
-                    return;
-                  setTotalWeeks(tempWeeks);
-                  setWeekAmount(tempAmount);
-                  setEditSettings(false);
-                }}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg"
-              >
-                Save
-              </button>
-
-              <button
-                onClick={() =>
-                  setEditSettings(false)
-                }
-                className="bg-gray-300 px-4 py-2 rounded-lg"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-        </div>
+        <button
+          onClick={() =>
+            exportWeeklyAllMembersPDF({
+              clubName: "Saraswati Club",
+              members,
+              totalWeeks: cycle.totalWeeks,
+              weekAmount: cycle.weeklyAmount,
+            })
+          }
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg mb-6"
+        >
+          Export Weekly PDF
+        </button>
       )}
+
+      {/* ===== TOTAL COLLECTION ===== */}
+      <p className="mb-6 text-indigo-600 font-semibold">
+        Total Weekly Collection: ₹ {weeklyTotal}
+      </p>
 
       {/* ===== MEMBER CARDS ===== */}
       <div className="space-y-4">
         {visibleMembers.map((m) => {
-          const isOpen = expanded[m.id];
+          const isOpen = expanded[m._id];
+          const paidCount = m.weeks.filter((w) => w.paid).length;
+
           return (
             <div
-              key={m.id}
+              key={m._id}
               className="bg-white rounded-xl shadow"
             >
               <button
-                onClick={() => toggleExpand(m.id)}
+                onClick={() => toggleExpand(m._id)}
                 className="w-full p-4 flex justify-between"
               >
                 <div className="text-left">
-                  <p className="font-semibold">
-                    {m.name}
-                  </p>
+                  <p className="font-semibold">{m.name}</p>
                   <p className="text-sm text-indigo-600">
-                    Paid: {m.payments.length} /{" "}
-                    {totalWeeks}
+                    Paid: {paidCount} / {cycle.totalWeeks}
                   </p>
                 </div>
-                {isOpen ? (
-                  <ChevronDown />
-                ) : (
-                  <ChevronRight />
-                )}
+                {isOpen ? <ChevronDown /> : <ChevronRight />}
               </button>
 
               {isOpen && (
                 <div className="px-4 pb-4 grid grid-cols-5 sm:grid-cols-8 gap-2">
-                  {Array.from(
-                    { length: totalWeeks },
-                    (_, i) => i + 1
-                  ).map((week) => {
-                    const paid = m.payments.find(
-                      (p) => p.week === week
-                    );
-                    return (
-                      <div
-                        key={week}
-                        className="relative group"
+                  {m.weeks.map((w) => (
+                    <div key={w.week} className="relative group">
+                      <button
+                        onClick={() =>
+                          !w.paid &&
+                          user.role === "admin" &&
+                          payWeek(m._id, w.week)
+                        }
+                        className={`h-9 rounded-lg text-xs w-full flex items-center justify-center ${
+                          w.paid
+                            ? "bg-green-500 text-white"
+                            : "bg-gray-100"
+                        }`}
                       >
+                        {w.paid ? <Check size={14} /> : `W${w.week}`}
+                      </button>
+
+                      {w.paid && user.role === "admin" && (
                         <button
                           onClick={() =>
-                            paid
-                              ? null
-                              : payWeek(m.id, week)
+                            undoPayment(m._id, w.week)
                           }
-                          className={`h-9 rounded-lg text-xs w-full ${
-                            paid
-                              ? "bg-green-500 text-white"
-                              : "bg-gray-100"
-                          }`}
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/70 text-white text-xs rounded-lg"
                         >
-                          {paid ? (
-                            <Check size={14} />
-                          ) : (
-                            `W${week}`
-                          )}
+                          Undo
                         </button>
-
-                        {paid &&
-                          user.role ===
-                            "admin" && (
-                            <button
-                              onClick={() =>
-                                undoPayment(
-                                  m.id,
-                                  week
-                                )
-                              }
-                              className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/70 text-white text-xs rounded-lg"
-                            >
-                              Undo
-                            </button>
-                          )}
-                      </div>
-                    );
-                  })}
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           );
         })}
       </div>
-
-      <p className="mt-6 text-indigo-600 font-semibold">
-        Total Weekly Collection: ₹ {weeklyTotal}
-      </p>
     </div>
   );
 }

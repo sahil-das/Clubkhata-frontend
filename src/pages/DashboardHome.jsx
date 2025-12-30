@@ -25,7 +25,9 @@ export default function DashboardHome() {
   const { year } = useYear();
 
   const totalCollection =
-    weeklyTotal + pujaTotal + donationTotal;
+  (weeklyTotal || 0) +
+  (pujaTotal || 0) +
+  (donationTotal || 0);
 
   return (
     <div className="space-y-8">

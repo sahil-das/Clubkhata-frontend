@@ -7,7 +7,7 @@ import {
   ChevronRight,
   Undo2,
 } from "lucide-react";
-import { exportWeeklyAllMembersPDF } from "../utils/weeklyAllMembersPdf";
+import { exportWeeklyAllMembersPDF } from "../utils/exportWeeklyAllMembersPDF.js";
 import { FileText } from "lucide-react";
 
 export default function Contributions() {

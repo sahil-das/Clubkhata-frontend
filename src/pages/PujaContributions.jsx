@@ -1,181 +1,172 @@
-import { CheckCircle, XCircle, IndianRupee } from "lucide-react";
+import { useEffect, useState } from "react";
+import api from "../api/axios";
+import { useFinance } from "../context/FinanceContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function PujaContributions() {
-  /* ================= MOCK MEMBER DATA =================
-     (Replace with backend later)
-  ===================================================== */
-  const members = [
-    {
-      id: 1,
-      name: "Rahul Kumar",
-      email: "rahul@clubname.com",
-      pujaContribution: {
-        amount: 1500,
-        date: "2025-02-12",
-      },
-    },
-    {
-      id: 2,
-      name: "Amit Singh",
-      email: "amit@clubname.com",
-      pujaContribution: null,
-    },
-    {
-      id: 3,
-      name: "Rohit Verma",
-      email: "rohit@clubname.com",
-      pujaContribution: {
-        amount: 1000,
-        date: "2025-02-13",
-      },
-    },
-  ];
+  const { fetchCentralFund } = useFinance();
+  const { user } = useAuth();
 
-  const totalCollected = members.reduce(
-    (sum, m) =>
-      sum + (m.pujaContribution?.amount || 0),
-    0
-  );
+  const [members, setMembers] = useState([]);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const paidCount = members.filter(
-    (m) => m.pujaContribution
-  ).length;
+  const [form, setForm] = useState({
+    memberId: "",
+    amount: "",
+  });
 
-  const unpaidCount = members.length - paidCount;
+  /* ================= LOAD DATA ================= */
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [mRes, pRes] = await Promise.all([
+          api.get("/members"),
+          api.get("/puja-contributions"),
+        ]);
+
+        setMembers(mRes.data.data || []);
+        setRows(pRes.data.data || []);
+      } catch (err) {
+        console.error("Puja load error", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+  /* ================= ADD CONTRIBUTION (ADMIN) ================= */
+  const addContribution = async () => {
+    if (!form.memberId || !form.amount) {
+      alert("Select member & amount");
+      return;
+    }
+
+    try {
+      await api.post("/puja-contributions", {
+        memberId: form.memberId,
+        amount: Number(form.amount),
+      });
+
+      setForm({ memberId: "", amount: "" });
+
+      // reload list
+      const res = await api.get("/puja-contributions");
+      setRows(res.data.data || []);
+
+      // 🔥 update dashboard totals
+      fetchCentralFund();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add contribution");
+    }
+  };
+
+  /* ================= LOADING ================= */
+  if (loading) {
+    return (
+      <div className="p-6 text-center text-gray-500">
+        Loading puja contributions…
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* ================= HEADER ================= */}
-      <div>
-        <h2 className="text-xl font-semibold">
-          Puja Time Member Contributions
-        </h2>
-        <p className="text-sm text-gray-500">
-          Paid / unpaid status of members
-        </p>
-      </div>
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold">
+        Puja-Time Member Contributions
+      </h2>
 
-      {/* ================= SUMMARY ================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <SummaryCard
-          label="Total Collected"
-          value={totalCollected}
-          icon={<IndianRupee />}
-          color="bg-green-600"
-        />
-        <SummaryCard
-          label="Members Paid"
-          value={paidCount}
-          icon={<CheckCircle />}
-          color="bg-indigo-600"
-        />
-        <SummaryCard
-          label="Members Not Paid"
-          value={unpaidCount}
-          icon={<XCircle />}
-          color="bg-red-500"
-        />
-      </div>
+      {/* ================= ADD FORM (ADMIN ONLY) ================= */}
+      {user.role === "admin" && (
+        <div className="bg-white p-4 rounded-xl shadow max-w-md">
+          <h3 className="font-semibold mb-3">
+            Add Contribution
+          </h3>
 
-      {/* ================= MOBILE VIEW ================= */}
-      <div className="space-y-3 sm:hidden">
-        {members.map((m) => (
-          <div
-            key={m.id}
-            className="bg-white rounded-xl shadow p-4"
+          <select
+            className="w-full border p-2 rounded mb-3"
+            value={form.memberId}
+            onChange={(e) =>
+              setForm({ ...form, memberId: e.target.value })
+            }
           >
-            <p className="font-semibold">{m.name}</p>
-            <p className="text-sm text-gray-500">
-              {m.email}
-            </p>
+            <option value="">Select Member</option>
+            {members.map((m) => (
+              <option key={m._id} value={m._id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
 
-            {m.pujaContribution ? (
-              <p className="text-green-600 font-semibold mt-2">
-                ₹ {m.pujaContribution.amount}
-                <span className="block text-xs text-gray-500">
-                  Paid on {m.pujaContribution.date}
-                </span>
-              </p>
-            ) : (
-              <p className="text-red-500 font-semibold mt-2">
-                Not Paid
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
+          <input
+            type="number"
+            placeholder="Amount"
+            className="w-full border p-2 rounded mb-3"
+            value={form.amount}
+            onChange={(e) =>
+              setForm({ ...form, amount: e.target.value })
+            }
+          />
 
-      {/* ================= DESKTOP VIEW ================= */}
-      <div className="hidden sm:block bg-white rounded-xl shadow overflow-x-auto">
-        <table className="min-w-[800px] w-full text-sm">
+          <button
+            onClick={addContribution}
+            className="bg-indigo-600 text-white px-4 py-2 rounded"
+          >
+            Save Contribution
+          </button>
+        </div>
+      )}
+
+      {/* ================= LIST ================= */}
+      <div className="bg-white rounded-xl shadow overflow-x-auto">
+        <table className="w-full text-sm">
           <thead className="bg-gray-100">
             <tr>
               <th className="p-3 text-left">Member</th>
-              <th className="p-3 text-left">Email</th>
-              <th className="p-3 text-left">Status</th>
               <th className="p-3 text-left">Amount</th>
+              <th className="p-3 text-left">Added By</th>
               <th className="p-3 text-left">Date</th>
             </tr>
           </thead>
+
           <tbody>
-            {members.map((m) => (
-              <tr
-                key={m.id}
-                className="border-t"
-              >
+            {rows.map((r) => (
+              <tr key={r._id} className="border-t">
                 <td className="p-3 font-medium">
-                  {m.name}
+                  {r.member?.name || "—"}
                 </td>
-                <td className="p-3">{m.email}</td>
+
+                <td className="p-3 text-green-600 font-semibold">
+                  ₹ {r.amount}
+                </td>
+
+                <td className="p-3 text-sm text-gray-600">
+                  {r.addedBy?.email || "System"}
+                </td>
+
                 <td className="p-3">
-                  {m.pujaContribution ? (
-                    <span className="flex items-center gap-1 text-green-600 font-semibold">
-                      <CheckCircle size={16} />
-                      Paid
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-red-500 font-semibold">
-                      <XCircle size={16} />
-                      Not Paid
-                    </span>
-                  )}
-                </td>
-                <td className="p-3 font-semibold">
-                  {m.pujaContribution
-                    ? `₹ ${m.pujaContribution.amount}`
-                    : "-"}
-                </td>
-                <td className="p-3">
-                  {m.pujaContribution?.date || "-"}
+                  {r.createdAt
+                    ? new Date(r.createdAt).toLocaleDateString()
+                    : "—"}
                 </td>
               </tr>
             ))}
+
+            {rows.length === 0 && (
+              <tr>
+                <td
+                  colSpan="4"
+                  className="p-6 text-center text-gray-500"
+                >
+                  No puja contributions recorded
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
-      </div>
-    </div>
-  );
-}
-
-/* ================= COMPONENT ================= */
-
-function SummaryCard({ label, value, icon, color }) {
-  return (
-    <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
-      <div
-        className={`${color} text-white p-3 rounded-lg`}
-      >
-        {icon}
-      </div>
-      <div>
-        <p className="text-sm text-gray-500">
-          {label}
-        </p>
-        <h3 className="text-xl font-bold">
-          {label.includes("Collected")
-            ? `₹ ${value}`
-            : value}
-        </h3>
       </div>
     </div>
   );
