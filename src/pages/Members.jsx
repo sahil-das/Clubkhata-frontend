@@ -16,9 +16,9 @@ export default function Members() {
 
   const [newMember, setNewMember] = useState({
     name: "",
-    email: "",
+    emailPrefix: "",
+    password: "",
   });
-
   /* ================= LOAD MEMBERS + PUJA SUMMARY ================= */
   useEffect(() => {
     if (user?.role !== "admin") return;
@@ -56,17 +56,31 @@ export default function Members() {
 
   /* ================= ADD MEMBER ================= */
   const addMember = async () => {
-    if (!newMember.name || !newMember.email) return;
+    if (
+      !newMember.name ||
+      !newMember.emailPrefix ||
+      !newMember.password
+    ) {
+      alert("All fields are required");
+      return;
+    }
+
+    const payload = {
+      name: newMember.name,
+      email: `${newMember.emailPrefix}@clubname.com`,
+      password: newMember.password,
+    };
 
     try {
-      const res = await api.post("/members", newMember);
+      const res = await api.post("/members", payload);
       setMembers((prev) => [...prev, res.data.data]);
-      setNewMember({ name: "", email: "" });
+      setNewMember({ name: "", emailPrefix: "", password: "" });
       setShowForm(false);
-    } catch {
-      alert("Failed to add member");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to add member");
     }
   };
+
 
   const filteredMembers = members.filter((m) => {
     const name = m.name?.toLowerCase() || "";
@@ -108,12 +122,37 @@ export default function Members() {
               setNewMember({ ...newMember, name: e.target.value })
             }
           />
+          <label className="text-sm font-medium">Email</label>
+
+          <div className="flex items-center border rounded-lg overflow-hidden mb-3">
+            <input
+              type="text"
+              placeholder="username"
+              className="flex-1 px-3 py-2 outline-none"
+              value={newMember.emailPrefix}
+              onChange={(e) =>
+                setNewMember({
+                  ...newMember,
+                  emailPrefix: e.target.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]/g, ""), // only letters & numbers
+                })
+              }
+            />
+            <span className="bg-gray-100 px-3 py-2 text-gray-600 text-sm">
+              @clubname.com
+            </span>
+          </div>
+
+          <label className="text-sm font-medium">Password</label>
+
           <input
-            placeholder="email@clubname.com"
-            className="w-full border rounded-lg px-3 py-2 mb-3"
-            value={newMember.email}
+            type="password"
+            className="w-full border rounded-lg px-3 py-2 mb-4"
+            placeholder="Set member password"
+            value={newMember.password}
             onChange={(e) =>
-              setNewMember({ ...newMember, email: e.target.value })
+              setNewMember({ ...newMember, password: e.target.value })
             }
           />
 
