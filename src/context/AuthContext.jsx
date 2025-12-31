@@ -1,59 +1,45 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import api from "../api/axios";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔐 Load user from token on app start
   useEffect(() => {
     const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
 
-    if (!token) {
-      setLoading(false);
-      return;
+    if (token && userData) {
+      setUser(JSON.parse(userData));
     }
-
-    api
-      .get("/auth/me")
-      .then((res) => {
-        setUser(res.data.user);
-      })
-      .catch(() => {
-        localStorage.removeItem("token");
-        setUser(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
-    const res = await api.post("/auth/login", {
-      email,
-      password,
-    });
+  const login = (data) => {
+    // mock login response (replace with API later)
+    const mockUser = {
+      name: "Admin User",
+      role: data.email.includes("admin") ? "admin" : "member",
+      email: data.email,
+    };
 
-    const { token, user } = res.data;
-    localStorage.setItem("token", token);
-    setUser(user);
+    localStorage.setItem("token", "mock-jwt-token");
+    localStorage.setItem("user", JSON.stringify(mockUser));
+    setUser(mockUser);
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
   };
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
-}
+};
 
-// ✅ Custom hook
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => useContext(AuthContext);

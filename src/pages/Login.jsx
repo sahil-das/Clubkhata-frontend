@@ -1,25 +1,15 @@
 import { useForm } from "react-hook-form";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const { user, login } = useAuth(); // ✅ single call
   const { register, handleSubmit, formState: { errors } } = useForm();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  // 🔒 If already logged in, redirect
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  const onSubmit = async (data) => {
-    try {
-      await login(data.email, data.password);
-      navigate("/dashboard");
-    } catch (err) {
-      console.error(err);
-      alert("Invalid login credentials");
-    }
+  const onSubmit = (data) => {
+    login(data);
+    navigate("/dashboard"); // ✅ REDIRECT HERE
   };
 
   return (
