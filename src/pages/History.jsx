@@ -82,7 +82,44 @@ export default function History() {
   }
 
   const cycle = cycles.find((c) => c._id === cycleId);
+/* ================= HANDLE EXPORT ================= */
+  const handleExport = async () => {
+    if (!cycleId || !summary) return;
 
+    try {
+      const confirmExport = window.confirm(
+        "Generate full PDF report? This will fetch all data."
+      );
+      if (!confirmExport) return;
+
+      setLoading(true);
+
+      // Fetch all data in parallel to ensure PDF is complete
+      // (Even if the user hasn't opened the accordion)
+      const [weeklyRes, pujaRes, donRes, expRes] = await Promise.all([
+        axios.get(`/history/cycle/${cycleId}/weekly`),
+        axios.get(`/history/cycle/${cycleId}/puja`),
+        axios.get(`/history/cycle/${cycleId}/donations`),
+        axios.get(`/history/cycle/${cycleId}/expenses`),
+      ]);
+
+      exportHistoryCyclePDF({
+        cycle: cycles.find((c) => c._id === cycleId),
+        summary,
+        weekly: weeklyRes.data.data,
+        puja: pujaRes.data.data,
+        donations: donRes.data.data,
+        expenses: expRes.data.data,
+      });
+
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to generate PDF");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   return (
     <div className="space-y-6">
       {/* HEADER */}
@@ -113,20 +150,12 @@ export default function History() {
         </div>
 
         <button
-          onClick={() =>
-            exportHistoryCyclePDF({
-              cycle,
-              summary,
-              weekly: data.weekly,
-              puja: data.puja,
-              donations: data.donations,
-              expenses: data.expenses,
-            })
-          }
-          className="btn-primary flex gap-2"
+          onClick={handleExport}  // <--- UPDATED THIS
+          disabled={loading}
+          className="btn-primary flex gap-2 items-center"
         >
           <Download size={16} />
-          Export PDF
+          {loading ? "Generating..." : "Export PDF"}
         </button>
 
 

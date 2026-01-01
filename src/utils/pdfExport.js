@@ -1,6 +1,10 @@
-import jsPDF from "jspdf";
-import "jspdf-autotable";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
+/* =========================================================
+   1. HISTORY EXPORT (Detailed - For History Page)
+   Expects full lists: weekly[], puja[], donations[], expenses[]
+   ========================================================= */
 export const exportHistoryCyclePDF = ({
   cycle,
   summary,
@@ -12,130 +16,30 @@ export const exportHistoryCyclePDF = ({
   const doc = new jsPDF();
   let y = 15;
 
-  /* ================= HEADER ================= */
-  doc.setFontSize(16);
+  // --- HEADER ---
+  doc.setFontSize(18);
   doc.text("Saraswati Puja Committee", 105, y, { align: "center" });
   y += 8;
 
   doc.setFontSize(12);
-  doc.text(
-    `Financial Report – ${cycle.name}`,
-    105,
-    y,
-    { align: "center" }
-  );
+  doc.text(`Financial Report: ${cycle.name}`, 105, y, { align: "center" });
   y += 6;
 
   doc.setFontSize(10);
   doc.text(
-    `Cycle Period: ${formatDate(cycle.startDate)} → ${formatDate(
+    `Period: ${new Date(cycle.startDate).toLocaleDateString()} - ${new Date(
       cycle.endDate
-    )}`,
+    ).toLocaleDateString()}`,
     105,
     y,
     { align: "center" }
   );
   y += 10;
 
-  /* ================= SUMMARY ================= */
-  doc.autoTable({
+  // --- SUMMARY TABLE ---
+  autoTable(doc, {
     startY: y,
     head: [["Opening", "Collections", "Expenses", "Closing"]],
-    body: [[
-      rupee(summary.openingBalance),
-      rupee(summary.collections),
-      rupee(summary.expenses),
-      rupee(summary.closingBalance),
-    ]],
-    theme: "grid",
-    styles: { halign: "center" },
-  });
-
-  y = doc.lastAutoTable.finalY + 8;
-
-  /* ================= WEEKLY ================= */
-  section(
-    doc,
-    "Weekly Contributions (Per Member)",
-    weekly.map(w => [w.memberName, rupee(w.total)]),
-    ["Member", "Amount"],
-    y
-  );
-
-  y = doc.lastAutoTable.finalY + 8;
-
-  /* ================= PUJA ================= */
-  section(
-    doc,
-    "Puja Contributions (Per Member)",
-    puja.map(p => [p.memberName, rupee(p.total)]),
-    ["Member", "Amount"],
-    y
-  );
-
-  y = doc.lastAutoTable.finalY + 8;
-
-  /* ================= DONATIONS ================= */
-  section(
-    doc,
-    "Outside Donations",
-    donations.map(d => [
-      d.donorName,
-      d.date,
-      rupee(d.amount),
-    ]),
-    ["Donor", "Date", "Amount"],
-    y
-  );
-
-  y = doc.lastAutoTable.finalY + 8;
-
-  /* ================= EXPENSES ================= */
-  section(
-    doc,
-    "Approved Expenses",
-    expenses.map(e => [
-      e.title,
-      e.date,
-      rupee(e.amount),
-    ]),
-    ["Title", "Date", "Amount"],
-    y
-  );
-
-  doc.save(
-    `Saraswati_Puja_${cycle.name.replace(/\s+/g, "_")}.pdf`
-  );
-};
-
-export const exportFinancePDF = ({
-  summary,
-  weekly,
-  puja,
-  donations,
-  expenses,
-}) => {
-  const doc = new jsPDF();
-  let y = 15;
-
-  /* ================= HEADER ================= */
-  doc.setFontSize(16);
-  doc.text("Saraswati Puja Committee - Financial Report", 105, y, { align: "center" });
-  y += 8;
-
-  doc.setFontSize(12);
-  doc.text(
-    "Overall Financial Summary",
-    105,
-    y,
-    { align: "center" }
-  );
-  y += 10;
-
-  /* ================= SUMMARY ================= */
-  doc.autoTable({
-    startY: y,
-    head: [["Opening Balance", "Total Collections", "Total Expenses", "Closing Balance"]],
     body: [
       [
         rupee(summary.openingBalance),
@@ -145,74 +49,125 @@ export const exportFinancePDF = ({
       ],
     ],
     theme: "grid",
+    headStyles: { fillColor: [63, 81, 181] },
     styles: { halign: "center" },
   });
 
-  y = doc.lastAutoTable.finalY + 8;
+  y = doc.lastAutoTable.finalY + 10;
 
-  /* ================= WEEKLY ================= */
-  section(
-    doc,
-    "Weekly Contributions (Per Member)",
-    weekly.map((w) => [w.memberName, rupee(w.total)]),
-    ["Member", "Amount"],
-    y
-  );
+  // --- WEEKLY DETAILS ---
+  if (weekly?.length) {
+    doc.text("Weekly Contributions", 14, y);
+    autoTable(doc, {
+      startY: y + 2,
+      head: [["Member Name", "Amount"]],
+      body: weekly.map((w) => [w.memberName, rupee(w.total)]),
+      theme: "striped",
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
 
-  y = doc.lastAutoTable.finalY + 8;
+  // --- PUJA DETAILS ---
+  if (puja?.length) {
+    doc.text("Puja Contributions", 14, y);
+    autoTable(doc, {
+      startY: y + 2,
+      head: [["Member Name", "Amount"]],
+      body: puja.map((p) => [p.memberName, rupee(p.total)]),
+      theme: "striped",
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
 
-  /* ================= PUJA ================= */
-  section(
-    doc,
-    "Puja Contributions (Per Member)",
-    puja.map((p) => [p.memberName, rupee(p.total)]),
-    ["Member", "Amount"],
-    y
-  );
+  // --- DONATIONS DETAILS ---
+  if (donations?.length) {
+    doc.text("Donations", 14, y);
+    autoTable(doc, {
+      startY: y + 2,
+      head: [["Donor", "Date", "Amount"]],
+      body: donations.map((d) => [d.donorName, d.date, rupee(d.amount)]),
+      theme: "striped",
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
 
-  y = doc.lastAutoTable.finalY + 8;
+  // --- EXPENSES DETAILS ---
+  if (expenses?.length) {
+    doc.addPage();
+    y = 20;
+    doc.text("Expenses Breakdown", 14, y);
+    autoTable(doc, {
+      startY: y + 2,
+      head: [["Title", "Date", "Amount"]],
+      body: expenses.map((e) => [e.title, e.date, rupee(e.amount)]),
+      theme: "striped",
+      headStyles: { fillColor: [220, 38, 38] },
+    });
+  }
 
-  /* ================= DONATIONS ================= */
-  section(
-    doc,
-    "Outside Donations",
-    donations.map((d) => [d.donorName, d.date, rupee(d.amount)]),
-    ["Donor", "Date", "Amount"],
-    y
-  );
-
-  y = doc.lastAutoTable.finalY + 8;
-
-  /* ================= EXPENSES ================= */
-  section(
-    doc,
-    "Approved Expenses",
-    expenses.map((e) => [e.title, e.date, rupee(e.amount)]),
-    ["Title", "Date", "Amount"],
-    y
-  );
-
-  doc.save(`Financial-Report-Overall.pdf`);
+  doc.save(`History_${cycle.name.replace(/\s+/g, "_")}.pdf`);
 };
 
-const section = (doc, title, body, head, y) => {
-  doc.setFontSize(12);
-  doc.text(title, 14, y - 3);
+/* =========================================================
+   2. FINANCE EXPORT (Snapshot - For Reports Page)
+   Expects summary[], contributions[], expenses[] (from Reports.jsx)
+   ========================================================= */
+export const exportFinancePDF = ({
+  clubName = "Club",
+  summary, // Array: [{label, value}]
+  contributions, // Array: [{type, amount}]
+  expenses, // Array: [{title, amount, status}]
+}) => {
+  const doc = new jsPDF();
+  let y = 15;
 
-  doc.autoTable({
-    startY: y,
-    head: [head],
-    body,
-    theme: "striped",
-    styles: { fontSize: 10 },
-    headStyles: { fillColor: [79, 70, 229] },
+  // --- HEADER ---
+  doc.setFontSize(18);
+  doc.text(clubName, 105, y, { align: "center" });
+  y += 10;
+  doc.setFontSize(14);
+  doc.text("Current Financial Snapshot", 105, y, { align: "center" });
+  y += 15;
+
+  // --- SUMMARY TABLE (From Summary Cards) ---
+  doc.text("Summary", 14, y);
+  autoTable(doc, {
+    startY: y + 2,
+    head: [["Category", "Amount"]],
+    body: summary.map((s) => [s.label, rupee(s.value)]),
+    theme: "grid",
+    headStyles: { fillColor: [79, 70, 229] }, // Indigo
   });
-}
 
+  y = doc.lastAutoTable.finalY + 10;
+
+  // --- CONTRIBUTIONS BREAKDOWN ---
+  doc.text("Contributions Overview", 14, y);
+  autoTable(doc, {
+    startY: y + 2,
+    head: [["Source", "Total Amount"]],
+    body: contributions.map((c) => [c.type, rupee(c.amount)]),
+    theme: "striped",
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+
+  // --- RECENT EXPENSES ---
+  if (expenses?.length) {
+    doc.text("Recent Expenses", 14, y);
+    autoTable(doc, {
+      startY: y + 2,
+      head: [["Title", "Status", "Amount"]],
+      body: expenses.map((e) => [e.title, e.status, rupee(e.amount)]),
+      theme: "striped",
+      headStyles: { fillColor: [220, 38, 38] }, // Red
+    });
+  }
+
+  doc.save("Finance_Report_Snapshot.pdf");
+};
+
+// --- UTILS ---
 function rupee(n) {
   return `₹ ${Number(n || 0).toLocaleString("en-IN")}`;
-}
-
-function formatDate(d) {
-  return new Date(d).toISOString().slice(0, 10);
 }
