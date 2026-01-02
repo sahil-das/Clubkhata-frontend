@@ -1,22 +1,33 @@
+import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+// Context Providers
 import { AuthProvider } from "./context/AuthContext";
+import { FinanceProvider } from "./context/FinanceContext";
+
+// Components
 import ProtectedRoute from "./components/ProtectedRoute";
 
+// Pages - Auth & Core
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard"; // Ensure this uses <Outlet /> now
 import DashboardHome from "./pages/DashboardHome";
-import Members from "./pages/Members";
-import Contributions from "./pages/Contributions";
-import Expenses from "./pages/Expenses";
-import { FinanceProvider } from "./context/FinanceContext";
-import Reports from "./pages/Reports";
-import WeeklyContributions from "./pages/WeeklyContributions";
-import Donations from "./pages/Donations";
-import MemberDetails from "./pages/MemberDetails";
-import CollectionsOverview from "./pages/CollectionsOverview";
-import PujaContributions from "./pages/PujaContributions";
-import History from "./pages/History";
+import UserProfile from "./pages/UserProfile";
 import Settings from "./pages/Settings";
+import History from "./pages/History";
+
+// Pages - Financials
+import CollectionsOverview from "./pages/CollectionsOverview";
+import Contributions from "./pages/Contributions";
+import WeeklyContributions from "./pages/WeeklyContributions";
+import PujaContributions from "./pages/PujaContributions";
+import Donations from "./pages/Donations";
+import Expenses from "./pages/Expenses";
+
+// Pages - Admin/Members
+import Members from "./pages/Members";
+import MemberDetails from "./pages/MemberDetails";
+import Reports from "./pages/Reports";
 
 export default function App() {
   return (
@@ -24,140 +35,73 @@ export default function App() {
       <FinanceProvider>
         <BrowserRouter>
           <Routes>
-            {/* Login */}
+            {/* --- Public Routes --- */}
             <Route path="/login" element={<Login />} />
 
-            {/* Dashboard Home */}
+            {/* --- Main Dashboard Layout --- */}
+            {/* The parent route handles the Layout and Basic Auth */}
             <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <Dashboard>
-                    <DashboardHome />
-                  </Dashboard>
+                  <Dashboard />
                 </ProtectedRoute>
               }
-            />
+            >
+              {/* Index matches "/dashboard" exactly */}
+              <Route index element={<DashboardHome />} />
+              
+              <Route path="profile" element={<UserProfile />} />
+              <Route path="history" element={<History />} />
+              
+              {/* Financial Routes */}
+              <Route path="collections" element={<CollectionsOverview />} />
+              <Route path="contributions" element={<Contributions />} />
+              <Route path="weekly" element={<WeeklyContributions />} />
+              <Route path="puja-contributions" element={<PujaContributions />} />
+              <Route path="donations" element={<Donations />} />
+              <Route path="expenses" element={<Expenses />} />
 
-            {/* Members (Admin only) */}
-            <Route
-              path="/dashboard/members"
-              element={
-                <ProtectedRoute role="admin">
-                  <Dashboard>
-                    <Members />
-                  </Dashboard>
-                </ProtectedRoute>
-              }
-            />
-
-           <Route
-              path="/dashboard/collections"
-              element={
-                <ProtectedRoute>
-                  <Dashboard>
-                    <CollectionsOverview />
-                  </Dashboard>
-                </ProtectedRoute>
-              }
-            />
-            <Route 
-              path="/dashboard/history"
-              element={
-                <ProtectedRoute>
-                  <Dashboard>
-                    <History />
-                  </Dashboard>
-                </ProtectedRoute>
-              }/>
-              <Route
-                path="/dashboard/settings"
+              {/* --- Admin Only Routes --- */}
+              {/* These are nested, but we wrap the element to enforce Role checks */}
+              <Route 
+                path="members" 
                 element={
                   <ProtectedRoute role="admin">
-                    <Dashboard>
-                      <Settings />
-                    </Dashboard>
+                    <Members />
                   </ProtectedRoute>
-                }
+                } 
               />
-
-            <Route
-              path="/dashboard/puja-contributions"
-              element={
-                <ProtectedRoute>
-                  <Dashboard>
-                    <PujaContributions />
-                  </Dashboard>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/dashboard/expenses"
-              element={
-                <ProtectedRoute>
-                  <Dashboard>
-                    <Expenses />
-                  </Dashboard>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/members/:memberId"
-              element={
-                <ProtectedRoute role="admin">
-                  <Dashboard>
+              
+              <Route 
+                path="members/:memberId" 
+                element={
+                  <ProtectedRoute role="admin">
                     <MemberDetails />
-                  </Dashboard>
-                </ProtectedRoute>
-              }
-            />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="reports" 
+                element={
+                  <ProtectedRoute role="admin">
+                    <Reports />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="settings" 
+                element={
+                  <ProtectedRoute role="admin">
+                    <Settings />
+                  </ProtectedRoute>
+                } 
+              />
+            </Route>
 
-
-          <Route
-            path="/dashboard/reports"
-            element={
-              <ProtectedRoute role="admin">
-                <Dashboard>
-                  <Reports />
-                </Dashboard>
-              </ProtectedRoute>
-            }
-          />
-            {/* Contributions */}
-            <Route
-              path="/dashboard/contributions"
-              element={
-                <ProtectedRoute>
-                  <Dashboard>
-                    <Contributions />
-                  </Dashboard>
-                </ProtectedRoute>
-              }
-            />
-          <Route
-            path="/dashboard/weekly"
-            element={
-              <ProtectedRoute>
-                <Dashboard>
-                  <WeeklyContributions />
-                </Dashboard>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/dashboard/donations"
-            element={
-              <ProtectedRoute>
-                <Dashboard>
-                  <Donations />
-                </Dashboard>
-              </ProtectedRoute>
-            }
-          />
-
-            {/* Fallback */}
+            {/* --- Fallback --- */}
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
         </BrowserRouter>

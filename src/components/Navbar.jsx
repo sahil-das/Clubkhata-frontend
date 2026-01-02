@@ -1,63 +1,105 @@
-import { Menu, LogOut } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Menu, User, LogOut, Settings, ChevronDown } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useLocation } from "react-router-dom";
-import { useYear } from "../context/YearContext";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 
 export default function Navbar({ setOpen }) {
   const { user, logout } = useAuth();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
   const location = useLocation();
 
-  const { year, setYear, availableYears } = useYear();
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  /* ===== PAGE TITLE BASED ON ROUTE ===== */
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  /* ===== PAGE TITLE LOGIC (Keep existing) ===== */
   const getTitle = () => {
-    if (location.pathname === "/dashboard") return "Dashboard";
-    if (location.pathname.includes("/dashboard/weekly"))
-      return "Weekly Contributions";
-    if (location.pathname.includes("/dashboard/donations"))
-      return "Donations";
-    if (location.pathname.includes("/dashboard/expenses"))
-      return "Expenses";
-    if (location.pathname.includes("/dashboard/reports"))
-      return "Reports";
-    if (location.pathname.includes("/dashboard/members"))
-      return "Members";
+    const path = location.pathname;
+    if (path === "/dashboard") return "Dashboard";
+    if (path.includes("/profile")) return "My Profile";
+    // ... keep your other title logic ...
     return "Dashboard";
   };
 
   return (
-    <header className="h-16 bg-white border-b flex items-center justify-between px-4 md:px-6">
-      {/* LEFT */}
+    <header className="h-16 bg-white border-b flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
+      
+      {/* LEFT: Mobile Menu + Title */}
       <div className="flex items-center gap-3">
-        {/* MOBILE MENU BUTTON */}
-        <button
-          className="md:hidden"
-          onClick={() => setOpen(true)}
-        >
-          <Menu />
+        <button className="md:hidden text-gray-600" onClick={() => setOpen(true)}>
+          <Menu size={24} />
         </button>
-
-        <h1 className="font-semibold text-gray-700">
-          {getTitle()}
-        </h1>
+        <h1 className="font-bold text-gray-800 text-lg">{getTitle()}</h1>
       </div>
 
-      {/* RIGHT */}
-      <div className="flex items-center gap-3 text-sm">
-        <span className="hidden sm:block text-gray-600">
-          {user.email}
-        </span>
-
-
-
-
-        <button
-          onClick={logout}
-          className="text-red-500 flex items-center gap-1 hover:text-red-600"
+      {/* RIGHT: Profile Dropdown */}
+      <div className="relative" ref={dropdownRef}>
+        <button 
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="flex items-center gap-3 hover:bg-gray-50 pl-3 pr-2 py-1 rounded-full transition-all border border-transparent hover:border-gray-200"
         >
-          <LogOut size={16} />
-          <span className="hidden sm:block">Logout</span>
+          <div className="hidden sm:flex flex-col items-end">
+            <span className="text-sm font-semibold text-gray-700 leading-tight">
+              {user?.name || "User"}
+            </span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-wide">
+              {user?.role || "Member"}
+            </span>
+          </div>
+          <div className="w-9 h-9 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-md ring-2 ring-indigo-100">
+            <User size={18} />
+          </div>
+          <ChevronDown size={16} className={`text-gray-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
         </button>
+
+        {/* DROPDOWN MENU */}
+        {dropdownOpen && (
+          <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 animation-fade-in-up">
+            <div className="px-4 py-2 border-b border-gray-100 sm:hidden">
+              <p className="text-sm font-semibold">{user?.name}</p>
+              <p className="text-xs text-gray-500">{user?.email}</p>
+            </div>
+            
+            <Link 
+              to="/dashboard/profile" 
+              onClick={() => setDropdownOpen(false)}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              <User size={16} /> My Profile
+            </Link>
+            
+            {user?.role === 'admin' && (
+              <Link 
+                to="/dashboard/settings" 
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <Settings size={16} /> Club Settings
+              </Link>
+            )}
+
+            <button
+              onClick={handleLogout}
+              className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+            >
+              <LogOut size={16} /> Logout
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import { Outlet } from "react-router-dom"; // Ensure this is imported
 
-export default function Dashboard({ children }) {
+export default function Dashboard() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,7 +16,8 @@ export default function Dashboard({ children }) {
         <Navbar setOpen={setOpen} />
 
         <main className="p-4 md:p-6">
-          {children}
+          {/* REPLACE {children} WITH <Outlet /> */}
+          <Outlet />
         </main>
       </div>
     </div>
