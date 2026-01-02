@@ -10,6 +10,7 @@ export default function Members() {
 
   const [members, setMembers] = useState([]);
   const [pujaMap, setPujaMap] = useState({});
+  const [totalPujaCollection, setTotalPujaCollection] = useState(0); // ✅ New State
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -19,8 +20,11 @@ export default function Members() {
     emailPrefix: "",
     password: "",
   });
+
   /* ================= LOAD MEMBERS + PUJA SUMMARY ================= */
   useEffect(() => {
+    // Note: If you want members to see this list, remove this check.
+    // Currently, only admins can fetch this data based on your code.
     if (user?.role !== "admin") return;
 
     const loadData = async () => {
@@ -30,13 +34,17 @@ export default function Members() {
         const memberList = memberRes.data.data || [];
         setMembers(memberList);
 
-        // 2️⃣ Puja summary (🔥 ONE API CALL)
-        const pujaRes = await api.get(
-          "/puja-contributions/summary"
-        );
+        // 2️⃣ Puja summary
+        const pujaRes = await api.get("/puja-contributions/summary");
+        const summaryData = pujaRes.data.data || [];
 
+        // ✅ Calculate Grand Total
+        const grandTotal = summaryData.reduce((sum, item) => sum + (item.total || 0), 0);
+        setTotalPujaCollection(grandTotal);
+
+        // Map for easy lookup
         const map = {};
-        pujaRes.data.data.forEach((p) => {
+        summaryData.forEach((p) => {
           map[p.memberId] = {
             total: p.total,
             paid: p.paid,
@@ -56,11 +64,7 @@ export default function Members() {
 
   /* ================= ADD MEMBER ================= */
   const addMember = async () => {
-    if (
-      !newMember.name ||
-      !newMember.emailPrefix ||
-      !newMember.password
-    ) {
+    if (!newMember.name || !newMember.emailPrefix || !newMember.password) {
       alert("All fields are required");
       return;
     }
@@ -81,7 +85,6 @@ export default function Members() {
     }
   };
 
-
   const filteredMembers = members.filter((m) => {
     const name = m.name?.toLowerCase() || "";
     const email = m.email?.toLowerCase() || "";
@@ -98,8 +101,14 @@ export default function Members() {
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
-        <h2 className="text-xl font-semibold">Members</h2>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          
+          {/* ✅ SHOW TOTAL HERE */}
+          <p className="text-sm text-gray-500 mt-1">
+            Total Puja Collection: <span className="text-green-600 font-bold">₹{totalPujaCollection}</span>
+          </p>
+        </div>
 
         {user?.role === "admin" && (
           <button
@@ -111,9 +120,10 @@ export default function Members() {
         )}
       </div>
 
-      {/* ADD MEMBER */}
+      {/* ADD MEMBER FORM */}
       {showForm && (
         <div className="bg-white p-6 rounded-xl shadow max-w-lg">
+          <h3 className="font-semibold mb-4">New Member Details</h3>
           <input
             placeholder="Name"
             className="w-full border rounded-lg px-3 py-2 mb-3"
@@ -135,7 +145,7 @@ export default function Members() {
                   ...newMember,
                   emailPrefix: e.target.value
                     .toLowerCase()
-                    .replace(/[^a-z0-9]/g, ""), // only letters & numbers
+                    .replace(/[^a-z0-9]/g, ""),
                 })
               }
             />
@@ -161,7 +171,7 @@ export default function Members() {
               onClick={addMember}
               className="bg-green-600 text-white px-4 py-2 rounded-lg"
             >
-              Save
+              Save Member
             </button>
             <button
               onClick={() => setShowForm(false)}
@@ -191,28 +201,19 @@ export default function Members() {
           return (
             <div
               key={m._id}
-              onClick={() =>
-                navigate(`/dashboard/members/${m._id}`)
-              }
+              onClick={() => navigate(`/dashboard/members/${m._id}`)}
               className="bg-white rounded-xl shadow p-4 flex justify-between items-center cursor-pointer"
             >
               <div>
                 <p className="font-semibold">{m.name}</p>
-                <p className="text-sm text-gray-500">
-                  {m.email}
-                </p>
+                <p className="text-sm text-gray-500">{m.email}</p>
 
                 <p
                   className={`text-xs mt-1 font-semibold ${
-                    puja?.paid
-                      ? "text-green-600"
-                      : "text-red-500"
+                    puja?.paid ? "text-green-600" : "text-red-500"
                   }`}
                 >
-                  Puja:{" "}
-                  {puja?.paid
-                    ? `Paid ₹${puja.total}`
-                    : "Not Paid"}
+                  Puja: {puja?.paid ? `Paid ₹${puja.total}` : "Not Paid"}
                 </p>
               </div>
               <ChevronRight />
@@ -229,9 +230,7 @@ export default function Members() {
               <th className="p-3 text-left">Name</th>
               <th className="p-3 text-left">Email</th>
               <th className="p-3 text-left">Role</th>
-              <th className="p-3 text-left">
-                Puja Contribution
-              </th>
+              <th className="p-3 text-left">Puja Contribution</th>
             </tr>
           </thead>
           <tbody>
@@ -240,20 +239,12 @@ export default function Members() {
               return (
                 <tr
                   key={m._id}
-                  onClick={() =>
-                    navigate(
-                      `/dashboard/members/${m._id}`
-                    )
-                  }
+                  onClick={() => navigate(`/dashboard/members/${m._id}`)}
                   className="border-t hover:bg-indigo-50 cursor-pointer"
                 >
-                  <td className="p-3 font-medium">
-                    {m.name}
-                  </td>
+                  <td className="p-3 font-medium">{m.name}</td>
                   <td className="p-3">{m.email}</td>
-                  <td className="p-3 capitalize">
-                    {m.role}
-                  </td>
+                  <td className="p-3 capitalize">{m.role}</td>
                   <td className="p-3">
                     {puja?.paid ? (
                       <span className="text-green-600 font-semibold">

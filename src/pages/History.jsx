@@ -124,7 +124,7 @@ export default function History() {
     <div className="space-y-6">
       {/* HEADER */}
       <div>
-        <h2 className="text-xl font-semibold">Financial History</h2>
+       
         <p className="text-sm text-gray-500">
           Read-only records per puja cycle
         </p>

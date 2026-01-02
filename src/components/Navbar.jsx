@@ -26,12 +26,23 @@ export default function Navbar({ setOpen }) {
     navigate("/login");
   };
 
-  /* ===== PAGE TITLE LOGIC (Keep existing) ===== */
+  /* ===== PAGE TITLE LOGIC ===== */
   const getTitle = () => {
     const path = location.pathname;
-    if (path === "/dashboard") return "Dashboard";
+    
+    if (path === "/dashboard" || path === "/dashboard/") return "Dashboard";
     if (path.includes("/profile")) return "My Profile";
-    // ... keep your other title logic ...
+    if (path.includes("/weekly")) return "Weekly Contributions";
+    if (path.includes("/donations")) return "Donations";
+    if (path.includes("/expenses")) return "Expenses";
+    if (path.includes("/members")) return "Members";
+    if (path.includes("/history")) return "Financial History";
+    if (path.includes("/settings")) return "Settings";
+    if (path.includes("/puja-contributions")) return "Puja Contributions";
+    if (path.includes("/collections")) return "Collections Overview";
+    if (path.includes("/contributions")) return "Contributions";
+    if (path.includes("/reports")) return "Reports";
+    if (path.includes("/member/")) return "Member Details";
     return "Dashboard";
   };
 

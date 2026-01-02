@@ -150,9 +150,7 @@ export default function WeeklyContributions() {
   /* ================= UI ================= */
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-6">
-        Weekly Contributions
-      </h2>
+      {/* Title removed (now in Navbar) */}
 
       {/* ===== CYCLE INFO ===== */}
       <div className="bg-indigo-50 p-4 rounded-xl shadow mb-6 text-sm">
@@ -170,7 +168,7 @@ export default function WeeklyContributions() {
             exportWeeklyAllMembersPDF({
               clubName: "Saraswati Club",
               members,
-              cycle, // pass cycle object (was passing totalWeeks / weekAmount)
+              cycle, 
             })
           }
           className="bg-indigo-600 text-white px-4 py-2 rounded-lg mb-6"

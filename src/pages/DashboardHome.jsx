@@ -19,51 +19,61 @@ export default function DashboardHome() {
     donationTotal,
     approvedExpenses,
     centralFund,
+    openingBalance,
   } = useFinance();
 
   const { user } = useAuth();
   const { year } = useYear();
 
   const totalCollection =
-  (weeklyTotal || 0) +
-  (pujaTotal || 0) +
-  (donationTotal || 0);
+    (weeklyTotal || 0) +
+    (pujaTotal || 0) +
+    (donationTotal || 0);
 
   return (
     <div className="space-y-8">
       {/* ================= HEADER ================= */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">
-          Welcome, {user.role === "admin" ? "Admin" : "Member"}
-        </h1>
-        <p className="text-gray-500 text-sm">
-          Saraswati Puja Committee Dashboard
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Welcome, {user.role === "admin" ? "Admin" : "Member"}
+          </h1>
+          <p className="text-gray-500 text-sm">
+            Saraswati Puja Committee Dashboard
+          </p>
+        </div>
+
+        <div className="text-right text-sm">
+          <p className="text-gray-500">
+            Financial Year: <span className="font-semibold text-gray-800">{year}</span>
+          </p>
+          <p className="text-gray-500 mt-1">
+            Opening Balance: <span className="font-semibold text-green-600">₹ {openingBalance}</span>
+          </p>
+        </div>
       </div>
-
-      <p className="text-sm text-gray-500">
-        Financial Year: <span className="font-semibold">{year}</span>
-      </p>
-
 
       {/* ================= KPI CARDS ================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        {/* ✅ CHANGED: Points to /dashboard/reports (Income vs Expense) */}
+        <StatCard
+          title="Central Balance"
+          value={centralFund}
+          icon={<Wallet />}
+          color="bg-green-600"
+          to="/dashboard/reports" 
+          subtitle={`Includes ₹${openingBalance} opening`} 
+        />
+
+        {/* Points to /dashboard/collections (Income Breakdown) */}
         <StatCard
           title="Total Collection"
           value={totalCollection}
           icon={<IndianRupee />}
           color="bg-indigo-600"
           to="/dashboard/collections"
-          subtitle="View sources"
-        />
-
-        <StatCard
-          title="Central Balance"
-          value={centralFund}
-          icon={<Wallet />}
-          color="bg-green-600"
-          to="/dashboard/collections"
-          subtitle="After expenses"
+          subtitle="This year's revenue"
         />
 
         <StatCard

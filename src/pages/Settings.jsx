@@ -135,7 +135,6 @@ export default function Settings() {
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
-        <h2 className="text-2xl font-bold">System Settings</h2>
         <p className="text-gray-500">
           {noActiveCycle 
             ? "No active financial year found. Start a new one below." 
