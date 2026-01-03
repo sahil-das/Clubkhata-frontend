@@ -2,18 +2,18 @@ import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
-import { Loader2, IndianRupee, User, Plus } from "lucide-react";
+import { Loader2, IndianRupee, User, Plus, Trash2, Calendar } from "lucide-react";
 
 export default function PujaContributions() {
   const { fetchCentralFund, pujaTotal } = useFinance();
-  const { activeClub } = useAuth(); // Use activeClub for role check
+  const { activeClub } = useAuth(); 
 
   const [members, setMembers] = useState([]);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // ✅ Form matches Backend expectations (userId instead of memberId)
+  // Form State
   const [form, setForm] = useState({
     userId: "",
     amount: "",
@@ -26,8 +26,11 @@ export default function PujaContributions() {
       try {
         const [mRes, pRes] = await Promise.all([
           api.get("/members"),
-          api.get("/member-fees"), // ✅ Using Correct Endpoint
+          api.get("/member-fees"),
         ]);
+
+        // ✅ LOGGING: Check console to see exact data structure
+        console.log("Members Data:", mRes.data.data);
 
         setMembers(mRes.data.data || []);
         setRows(pRes.data.data || []);
@@ -47,7 +50,6 @@ export default function PujaContributions() {
   const addContribution = async (e) => {
     e.preventDefault();
     
-    // ✅ Check for userId, not memberId
     if (!form.userId || !form.amount) {
       alert("Please select a member and enter an amount");
       return;
@@ -55,7 +57,7 @@ export default function PujaContributions() {
 
     setSubmitting(true);
     try {
-      // ✅ POST to /member-fees with 'userId'
+      // ✅ POST to /member-fees with correct 'userId'
       await api.post("/member-fees", {
         userId: form.userId, 
         amount: Number(form.amount),
@@ -64,15 +66,14 @@ export default function PujaContributions() {
 
       setForm({ userId: "", amount: "", notes: "" });
 
-      // Reload list
+      // Refresh Data
       const res = await api.get("/member-fees");
       setRows(res.data.data || []);
-
-      // Update Dashboard
       await fetchCentralFund();
+
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to add contribution. Is the Festival Year active?");
+      alert(err.response?.data?.message || "Failed to add contribution.");
     } finally {
       setSubmitting(false);
     }
@@ -127,9 +128,9 @@ export default function PujaContributions() {
                     >
                       <option value="">Select Member...</option>
                       {members.map((m) => (
-                        // ✅ CRITICAL: Value must be the USER ID, not Membership ID
-                        <option key={m._id} value={m.user?._id || m.user}>
-                          {m.name || m.user?.name}
+                        // ✅ CRITICAL FIX: Your API returns { userId, name, membershipId } directly
+                        <option key={m.membershipId} value={m.userId}>
+                          {m.name}
                         </option>
                       ))}
                     </select>
@@ -201,16 +202,20 @@ export default function PujaContributions() {
                     </div>
 
                     {/* Date */}
-                    <div className="w-full sm:col-span-3 text-sm text-gray-500 mb-2 sm:mb-0">
+                    <div className="w-full sm:col-span-3 text-sm text-gray-500 mb-2 sm:mb-0 flex items-center gap-1">
+                       <Calendar size={14}/>
                        {new Date(r.createdAt).toLocaleDateString()}
-                       <div className="text-xs text-gray-400">By: {r.collectedBy?.name || "Admin"}</div>
                     </div>
 
                     {/* Action */}
                     <div className="w-full sm:col-span-2 text-right">
                        {activeClub?.role === "admin" && (
-                         <button onClick={() => deleteRow(r._id)} className="text-xs text-red-500 hover:underline">
-                           Delete
+                         <button 
+                            onClick={() => deleteRow(r._id)} 
+                            className="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition"
+                            title="Delete Entry"
+                         >
+                           <Trash2 size={16} />
                          </button>
                        )}
                     </div>
@@ -218,7 +223,7 @@ export default function PujaContributions() {
                ))}
                
                {rows.length === 0 && (
-                 <div className="p-8 text-center text-gray-400">No contributions recorded yet.</div>
+                 <div className="p-10 text-center text-gray-400 italic">No contributions recorded yet.</div>
                )}
              </div>
            </div>

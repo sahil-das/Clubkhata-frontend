@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { 
-  Plus, Search, CheckCircle, XCircle, Clock, Loader2, IndianRupee 
+  Plus, Search, CheckCircle, XCircle, Clock, Loader2, IndianRupee, AlertCircle, Lock 
 } from "lucide-react";
 
 export default function Expenses() {
@@ -12,11 +12,23 @@ export default function Expenses() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [cycle, setCycle] = useState(null);
 
   const CATEGORIES = ["Pandal", "Idol", "Light & Sound", "Food/Bhog", "Priest/Puja", "Transport", "Miscellaneous"];
 
   const fetchExpenses = async () => {
     try {
+      // Check if active year exists
+      const yearRes = await api.get("/years/active");
+      const activeYear = yearRes.data.data;
+      
+      if (!activeYear) {
+        setLoading(false);
+        return;
+      }
+
+      setCycle(activeYear);
+
       const res = await api.get("/expenses");
       setExpenses(res.data.data);
     } catch (err) {
@@ -56,6 +68,33 @@ export default function Expenses() {
       <Loader2 className="animate-spin w-10 h-10" />
     </div>
   );
+
+  if (!cycle) {
+    // Admin view - Show alert to create year
+    if (activeClub?.role === "admin") {
+      return (
+        <div className="p-8 text-center bg-red-50 text-red-600 rounded-xl border border-red-100 mt-6">
+          <AlertCircle className="mx-auto mb-2" size={32} />
+          <p className="font-bold text-lg">No Active Financial Year found.</p>
+          <p className="text-sm mt-1">Please create a new festival year in the Dashboard settings.</p>
+        </div>
+      );
+    }
+
+    // Member view - Show locked message
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6">
+        <div className="bg-gray-100 p-6 rounded-full mb-4">
+          <Lock className="w-12 h-12 text-gray-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-700">Financial Year Closed</h2>
+        <p className="text-gray-500 max-w-md mt-2">
+          The committee has closed the accounts for the previous year. 
+          Please wait for the admin to start the new session.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-10">

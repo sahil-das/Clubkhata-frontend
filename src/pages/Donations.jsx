@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { 
-  Plus, Search, Trash2, User, Phone, MapPin, IndianRupee, Loader2, Receipt, Calendar 
+  Plus, Search, Trash2, User, Phone, MapPin, IndianRupee, Loader2, Receipt, Calendar, AlertCircle, Lock 
 } from "lucide-react";
 
 export default function Donations() {
@@ -12,10 +12,22 @@ export default function Donations() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [cycle, setCycle] = useState(null);
 
   // Fetch Donations
   const fetchDonations = async () => {
     try {
+      // Check if active year exists
+      const yearRes = await api.get("/years/active");
+      const activeYear = yearRes.data.data;
+      
+      if (!activeYear) {
+        setLoading(false);
+        return;
+      }
+
+      setCycle(activeYear);
+
       const res = await api.get("/donations");
       setDonations(res.data.data);
     } catch (err) {
@@ -48,6 +60,37 @@ export default function Donations() {
       alert("Failed to delete donation");
     }
   };
+
+  if (loading) {
+    return <div className="text-center py-10 text-gray-500"><Loader2 className="animate-spin mx-auto mb-2"/>Loading records...</div>;
+  }
+
+  if (!cycle) {
+    // Admin view - Show alert to create year
+    if (activeClub?.role === "admin") {
+      return (
+        <div className="p-8 text-center bg-red-50 text-red-600 rounded-xl border border-red-100 mt-6">
+          <AlertCircle className="mx-auto mb-2" size={32} />
+          <p className="font-bold text-lg">No Active Financial Year found.</p>
+          <p className="text-sm mt-1">Please create a new festival year in the Dashboard settings.</p>
+        </div>
+      );
+    }
+
+    // Member view - Show locked message
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6">
+        <div className="bg-gray-100 p-6 rounded-full mb-4">
+          <Lock className="w-12 h-12 text-gray-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-700">Financial Year Closed</h2>
+        <p className="text-gray-500 max-w-md mt-2">
+          The committee has closed the accounts for the previous year. 
+          Please wait for the admin to start the new session.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -87,9 +130,7 @@ export default function Donations() {
       </div>
 
       {/* DONATIONS LIST */}
-      {loading ? (
-        <div className="text-center py-10 text-gray-500"><Loader2 className="animate-spin mx-auto mb-2"/>Loading records...</div>
-      ) : (
+      {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredDonations.map((d) => (
             <div key={d._id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition relative group">
@@ -139,7 +180,7 @@ export default function Donations() {
             </div>
           )}
         </div>
-      )}
+      }
 
       {/* ADD MODAL */}
       {showAddModal && <AddDonationModal onClose={() => setShowAddModal(false)} refresh={fetchDonations} />}
