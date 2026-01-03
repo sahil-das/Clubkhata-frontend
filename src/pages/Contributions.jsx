@@ -1,351 +1,313 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Undo2,
+import { 
+  Check, 
+  ChevronDown, 
+  ChevronRight, 
+  AlertCircle,
+  Loader2,
+  FileText,
+  CreditCard,
+  IndianRupee
 } from "lucide-react";
-import { exportWeeklyAllMembersPDF } from "../utils/exportWeeklyAllMembersPDF.js";
-import { FileText } from "lucide-react";
+import { exportWeeklyAllMembersPDF } from "../utils/exportWeeklyAllMembersPDF";
 
 export default function Contributions() {
-  const { user } = useAuth();
-  const { weeklyTotal, setWeeklyTotal } = useFinance();
+  const { user, activeClub } = useAuth(); 
+  const { fetchCentralFund } = useFinance();
 
-  /* ================= WEEK SETTINGS ================= */
-  const [totalWeeks, setTotalWeeks] = useState(50);
-  const [weekAmount, setWeekAmount] = useState(100);
-
-  // Safe edit mode
-  const [editSettings, setEditSettings] = useState(false);
-  const [tempWeeks, setTempWeeks] = useState(totalWeeks);
-  const [tempAmount, setTempAmount] = useState(weekAmount);
-
-  /* ================= MEMBERS (MOCK) ================= */
-  const [members, setMembers] = useState([
-    {
-      id: 1,
-      name: "Rahul Kumar",
-      email: "rahul@clubname.com",
-      payments: [
-        { week: 1, date: "2025-01-05" },
-        { week: 2, date: "2025-01-12" },
-      ],
-    },
-    {
-      id: 2,
-      name: "Amit Singh",
-      email: "amit@clubname.com",
-      payments: [{ week: 1, date: "2025-01-06" }],
-    },
-  ]);
-
-  /* ================= UI STATE ================= */
+  const [members, setMembers] = useState([]);
+  const [cycle, setCycle] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({});
+  const [processing, setProcessing] = useState(null);
 
-  const toggleExpand = (id) => {
+  /* ================= LOAD DATA ================= */
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+
+        // 1. Get Active Cycle
+        const yearRes = await api.get("/years/active");
+        const activeYear = yearRes.data.data;
+        
+        if (!activeYear) {
+            setLoading(false);
+            return;
+        }
+
+        // Add calculated fields
+        const cycleData = {
+            ...activeYear,
+            subscriptionFrequency: activeYear.subscriptionFrequency || 'weekly',
+            totalInstallments: activeYear.totalInstallments || 52,
+            amountPerInstallment: activeYear.amountPerInstallment || 0
+        };
+        setCycle(cycleData);
+
+        // 2. Get All Members
+        const memberRes = await api.get("/members");
+        const memberList = memberRes.data.data;
+
+        // 3. Fetch Subscriptions
+        const membersWithSubs = await Promise.all(
+          memberList.map(async (m) => {
+            try {
+              const subRes = await api.get(`/subscriptions/member/${m.membershipId}`);
+              return {
+                ...m,
+                subscription: subRes.data.data.subscription, 
+              };
+            } catch (error) {
+              return { ...m, subscription: null };
+            }
+          })
+        );
+
+        setMembers(membersWithSubs);
+      } catch (err) {
+        console.error("Contributions Load Error", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  /* ================= CALCULATE TOTAL ================= */
+  const totalCollected = members.reduce((sum, m) => {
+      return sum + (m.subscription?.totalPaid || 0);
+  }, 0);
+
+  /* ================= HANDLERS ================= */
+  const toggleExpand = (id) =>
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const handlePayment = async (memberId, subscriptionId, installmentNumber, currentStatus) => {
+    if (activeClub?.role !== "admin") return;
+    if (processing) return;
+
+    setProcessing(`${memberId}-${installmentNumber}`);
+
+    try {
+      const res = await api.post("/subscriptions/pay", {
+        subscriptionId,
+        installmentNumber
+      });
+
+      // Optimistic UI Update
+      setMembers((prev) =>
+        prev.map((m) => {
+          if (m.membershipId !== memberId) return m; 
+          return {
+            ...m,
+            subscription: res.data.data 
+          };
+        })
+      );
+
+      fetchCentralFund();
+
+    } catch (err) {
+      alert("Payment failed: " + (err.response?.data?.message || err.message));
+    } finally {
+      setProcessing(null);
+    }
   };
 
-  /* ================= VISIBILITY ================= */
-  const visibleMembers =
-    user.role === "admin"
+  const handleExport = () => {
+      if (!cycle || members.length === 0) return;
+      
+      const exportData = members
+        .filter(m => m.subscription) 
+        .map(m => ({
+            id: m.membershipId,
+            name: m.name,
+            payments: m.subscription.installments
+                .filter(i => i.isPaid)
+                .map(i => ({ week: i.number, date: i.paidDate })) 
+        }));
+
+      exportWeeklyAllMembersPDF({
+          clubName: activeClub?.clubName || "Club Report",
+          members: exportData,
+          totalWeeks: cycle.totalInstallments,
+          weekAmount: cycle.amountPerInstallment
+      });
+  };
+
+  /* ================= HELPERS ================= */
+  const visibleMembers = activeClub?.role === "admin"
       ? members
       : members.filter((m) => m.email === user.email);
 
-  /* ================= PAY WEEK ================= */
-  const payWeek = (memberId, week) => {
-    setMembers((prev) =>
-      prev.map((m) => {
-        if (m.id !== memberId) return m;
-
-        // permission
-        if (user.role !== "admin" && m.email !== user.email)
-          return m;
-
-        if (m.payments.some((p) => p.week === week))
-          return m;
-
-        setWeeklyTotal((t) => t + weekAmount);
-
-        return {
-          ...m,
-          payments: [
-            ...m.payments,
-            {
-              week,
-              date: new Date().toISOString().split("T")[0],
-            },
-          ],
-        };
-      })
-    );
+  const getLabel = (num) => {
+    if (cycle?.subscriptionFrequency === 'monthly') {
+       const date = new Date();
+       date.setMonth(num - 1);
+       return date.toLocaleString('default', { month: 'short' });
+    }
+    return `W${num}`;
   };
 
-  /* ================= UNDO PAYMENT ================= */
-  const undoPayment = (memberId, week) => {
-    if (!window.confirm("Undo this payment?")) return;
-
-    setMembers((prev) =>
-      prev.map((m) => {
-        if (m.id !== memberId) return m;
-
-        const payment = m.payments.find(
-          (p) => p.week === week
-        );
-        if (!payment) return m;
-
-        setWeeklyTotal((t) => t - weekAmount);
-
-        return {
-          ...m,
-          payments: m.payments.filter(
-            (p) => p.week !== week
-          ),
-        };
-      })
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-indigo-600">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p className="text-sm font-medium animate-pulse">Loading Subscriptions...</p>
+      </div>
     );
-  };
+  }
+
+  if (!cycle) {
+    return (
+        <div className="p-8 text-center bg-red-50 text-red-600 rounded-xl border border-red-100 mt-6">
+            <AlertCircle className="mx-auto mb-2" />
+            <p className="font-bold">No Active Financial Year found.</p>
+            <p className="text-sm mt-1">Please create a new festival year in the Dashboard settings.</p>
+        </div>
+    );
+  }
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-6">
-        Weekly Contributions
-      </h2>
-      {user.role === "admin" && (
-  <button
-    onClick={() =>
-      exportWeeklyAllMembersPDF({
-        clubName: "Saraswati Puja Club",
-        members,
-        totalWeeks,
-        weekAmount,
-      })
-    }
-    className="mb-4 flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-        >
-            <FileText size={18} />
-            Export Weekly Register (PDF)
-        </button>
-        )}
-
-
-      {/* ================= ADMIN SETTINGS (SAFE) ================= */}
-      {user.role === "admin" && (
-        <div className="bg-white p-4 rounded-xl shadow mb-6">
-          <h3 className="font-semibold mb-3">
-            Weekly Settings
-          </h3>
-
-          {!editSettings ? (
-            /* LOCKED VIEW */
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-              <div>
-                <p className="text-sm text-gray-500">
-                  Total Weeks
-                </p>
-                <p className="font-semibold">
-                  {totalWeeks}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">
-                  Amount / Week
-                </p>
-                <p className="font-semibold">
-                  ₹ {weekAmount}
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  setTempWeeks(totalWeeks);
-                  setTempAmount(weekAmount);
-                  setEditSettings(true);
-                }}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg w-fit"
-              >
-                Edit Settings
-              </button>
-            </div>
-          ) : (
-            /* EDIT MODE */
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
-              <div>
-                <label className="text-sm font-medium">
-                  Total Weeks
-                </label>
-                <input
-                  type="number"
-                  value={tempWeeks}
-                  onChange={(e) =>
-                    setTempWeeks(Number(e.target.value))
-                  }
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">
-                  Amount / Week (₹)
-                </label>
-                <input
-                  type="number"
-                  value={tempAmount}
-                  onChange={(e) =>
-                    setTempAmount(Number(e.target.value))
-                  }
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-
-              <button
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      "Are you sure you want to change weekly settings?"
-                    )
-                  )
-                    return;
-
-                  setTotalWeeks(tempWeeks);
-                  setWeekAmount(tempAmount);
-                  setEditSettings(false);
-                }}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg"
-              >
-                Save
-              </button>
-
-              <button
-                onClick={() =>
-                  setEditSettings(false)
-                }
-                className="bg-gray-300 px-4 py-2 rounded-lg"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
+    <div className="space-y-6 pb-10">
+      
+      {/* 1. HEADER & INFO */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-gray-100 pb-6">
+        <div>
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <CreditCard className="text-indigo-600" /> 
+                {cycle.subscriptionFrequency === 'monthly' ? "Monthly Subscriptions" : "Weekly Subscriptions"}
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">
+                Active Cycle: <span className="font-semibold text-gray-700">{cycle.name}</span>
+            </p>
         </div>
-      )}
+        
+        <div className="flex flex-wrap gap-3 items-center">
+             
+             {/* ✅ TOTAL COLLECTED BADGE */}
+             <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm border border-emerald-100 flex items-center gap-2">
+                <IndianRupee size={16} /> Total: {totalCollected.toLocaleString()}
+             </div>
 
-      {/* ================= MEMBER CARDS ================= */}
+             {/* RATE BADGE */}
+             <div className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm border border-indigo-100">
+                Rate: ₹{cycle.amountPerInstallment} / {cycle.subscriptionFrequency.slice(0, -2)}
+             </div>
+
+             {/* EXPORT BUTTON */}
+             {activeClub?.role === "admin" && (
+                <button 
+                    onClick={handleExport}
+                    className="bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-700 flex items-center gap-2 shadow-lg shadow-gray-200 transition-all"
+                >
+                    <FileText size={16} /> Export PDF
+                </button>
+             )}
+        </div>
+      </div>
+
+      {/* 2. MEMBER LIST */}
       <div className="space-y-4">
-        {visibleMembers.map((member) => {
-          const isOpen = expanded[member.id];
-          const paidWeeks = member.payments.map(
-            (p) => p.week
-          );
+        {visibleMembers.map((m) => {
+          if (!m.subscription) return null;
+
+          const isOpen = expanded[m.membershipId];
+          const memberTotalPaid = m.subscription.installments.filter(i => i.isPaid).length;
+          const progress = (memberTotalPaid / cycle.totalInstallments) * 100;
+          const isComplete = memberTotalPaid === cycle.totalInstallments;
 
           return (
-            <div
-              key={member.id}
-              className="bg-white rounded-xl shadow"
-            >
-              {/* HEADER */}
+            <div key={m.membershipId} className={`
+                bg-white rounded-xl shadow-sm border transition-all duration-300
+                ${isComplete ? 'border-emerald-200 bg-emerald-50/10' : 'border-gray-100 hover:border-indigo-200'}
+            `}>
+              
+              {/* Card Header */}
               <button
-                onClick={() => toggleExpand(member.id)}
-                className="w-full p-4 flex justify-between items-center"
+                onClick={() => toggleExpand(m.membershipId)}
+                className="w-full p-5 flex justify-between items-center hover:bg-gray-50 transition-colors rounded-xl"
               >
-                <div className="text-left">
-                  <h3 className="font-semibold">
-                    {member.name}
-                  </h3>
-                  <p className="text-sm text-indigo-600">
-                    Paid: {paidWeeks.length} /{" "}
-                    {totalWeeks}
-                  </p>
+                <div className="flex items-center gap-4">
+                   <div className={`
+                        w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-sm
+                        ${isComplete ? 'bg-emerald-500' : 'bg-indigo-500'}
+                   `}>
+                        {m.name.charAt(0)}
+                   </div>
+                   
+                   <div className="text-left">
+                        <p className="font-bold text-gray-800">{m.name}</p>
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">
+                            Status: 
+                            <span className={`ml-1 ${isComplete ? 'text-emerald-600 font-bold' : 'text-indigo-600'}`}>
+                                {memberTotalPaid} / {cycle.totalInstallments} Paid
+                            </span>
+                        </p>
+                   </div>
                 </div>
 
-                {isOpen ? (
-                  <ChevronDown />
-                ) : (
-                  <ChevronRight />
-                )}
+                <div className="flex items-center gap-4">
+                    <div className="hidden md:block w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                            className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
+                            style={{ width: `${progress}%` }}
+                        ></div>
+                    </div>
+                    {isOpen ? <ChevronDown className="text-gray-400" /> : <ChevronRight className="text-gray-400" />}
+                </div>
               </button>
 
-              {/* EXPAND */}
+              {/* Collapsible Grid */}
               {isOpen && (
-                <div className="px-4 pb-4 grid grid-cols-5 sm:grid-cols-8 gap-2">
-                  {Array.from(
-                    { length: totalWeeks },
-                    (_, i) => i + 1
-                  ).map((week) => {
-                    const payment =
-                      member.payments.find(
-                        (p) => p.week === week
-                      );
-
-                    return (
-                      <div
-                        key={week}
-                        className="relative group"
-                      >
-                        <button
-                          onClick={() =>
-                            payment
-                              ? null
-                              : payWeek(
-                                  member.id,
-                                  week
-                                )
-                          }
-                          className={`h-10 w-full rounded-lg text-xs font-medium flex items-center justify-center
-                            ${
-                              payment
-                                ? "bg-green-500 text-white"
-                                : "bg-gray-100 hover:bg-indigo-100"
-                            }`}
-                        >
-                          {payment ? (
-                            <Check size={14} />
-                          ) : (
-                            `W${week}`
-                          )}
-                        </button>
-
-                        {/* DATE + UNDO */}
-                        {payment && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 bg-black/70 text-white text-[10px] rounded-lg">
-                            <span>
-                              {payment.date}
-                            </span>
-
-                            {user.role ===
-                              "admin" && (
-                              <button
-                                onClick={() =>
-                                  undoPayment(
-                                    member.id,
-                                    week
-                                  )
-                                }
-                                className="mt-1 flex items-center gap-1 text-red-300"
-                              >
-                                <Undo2 size={12} />{" "}
-                                Undo
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="px-5 pb-6 pt-2 border-t border-gray-50 animate-in fade-in slide-in-from-top-1">
+                    <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2">
+                        {m.subscription.installments.map((inst) => {
+                            const isProcessing = processing === `${m.membershipId}-${inst.number}`;
+                            
+                            return (
+                                <button
+                                    key={inst.number}
+                                    disabled={activeClub?.role !== 'admin' || isProcessing}
+                                    onClick={() => handlePayment(m.membershipId, m.subscription._id, inst.number, inst.isPaid)}
+                                    className={`
+                                        relative flex items-center justify-center h-10 rounded-lg border transition-all duration-200
+                                        ${inst.isPaid 
+                                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm hover:bg-emerald-600' 
+                                            : 'bg-white border-gray-200 text-gray-400 hover:border-indigo-300 hover:text-indigo-500'
+                                        }
+                                        ${activeClub?.role !== 'admin' ? 'cursor-default opacity-90' : 'cursor-pointer'}
+                                    `}
+                                    title={inst.isPaid ? `Paid: ${new Date(inst.paidDate).toLocaleDateString()}` : "Unpaid"}
+                                >
+                                    {isProcessing ? (
+                                        <Loader2 size={14} className="animate-spin" />
+                                    ) : inst.isPaid ? (
+                                        <Check size={16} strokeWidth={3} />
+                                    ) : (
+                                        <span className="text-[10px] font-bold">{getLabel(inst.number)}</span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    
+                    {activeClub?.role === 'admin' && (
+                        <p className="text-[10px] text-gray-400 mt-3 text-center italic">
+                            Tap any box to mark as Paid/Unpaid. Changes save instantly.
+                        </p>
+                    )}
                 </div>
               )}
             </div>
           );
         })}
       </div>
-
-      {/* SUMMARY */}
-      <p className="mt-6 text-sm font-semibold text-indigo-600">
-        Total Weekly Collection: ₹ {weeklyTotal}
-      </p>
     </div>
   );
 }

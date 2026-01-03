@@ -8,7 +8,7 @@ export function exportFinancialReportPDF({
   totalIncome,
   totalExpense,
   netBalance,
-  details = { expenses: [], donations: [], puja: [] } // Defaults
+  details = { expenses: [], donations: [], puja: [] } 
 }) {
   const doc = new jsPDF();
   const formatCurrency = (amount) => `Rs. ${Number(amount).toLocaleString('en-IN')}`;
@@ -21,7 +21,7 @@ export function exportFinancialReportPDF({
 
   doc.setFontSize(24);
   doc.setTextColor(255, 255, 255);
-  doc.text("SARASWATI CLUB", 14, 20);
+  doc.text("CLUB FINANCIAL REPORT", 14, 20);
 
   doc.setFontSize(12);
   doc.setTextColor(220, 220, 255);
@@ -68,9 +68,9 @@ export function exportFinancialReportPDF({
     head: [["Category", "Description", "Amount", "Type"]],
     body: [
       ["Opening", "Brought forward", formatCurrency(openingBalance), "Asset"],
-      ["Income", "Weekly Contributions", formatCurrency(incomeSources.weekly), "Credit"],
-      ["Income", "Puja Contributions", formatCurrency(incomeSources.puja), "Credit"],
-      ["Income", "Donations & Gifts", formatCurrency(incomeSources.donation), "Credit"],
+      ["Income", "Subscriptions (Weekly/Monthly)", formatCurrency(incomeSources.weekly), "Credit"],
+      ["Income", "Festival Chanda (Member Fees)", formatCurrency(incomeSources.puja), "Credit"],
+      ["Income", "Public Donations", formatCurrency(incomeSources.donation), "Credit"],
       ["Expense", "All Expenses", formatCurrency(totalExpense), "Debit"],
       [{ content: "Net Balance", colSpan: 2, styles: { fontStyle: 'bold', halign: 'right' } }, { content: formatCurrency(netBalance), styles: { fontStyle: 'bold' } }, "-"]
     ],
@@ -94,7 +94,6 @@ export function exportFinancialReportPDF({
   doc.setFontSize(14); doc.setTextColor(198, 40, 40); doc.text("Detailed Expenses", 14, y);
   y += 5;
 
-  // Sort expenses by date
   const sortedExpenses = details.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   if (sortedExpenses.length > 0) {
@@ -104,11 +103,11 @@ export function exportFinancialReportPDF({
         body: sortedExpenses.map(e => [
             new Date(e.date).toLocaleDateString(),
             e.title,
-            e.addedBy?.name || "Admin",
+            e.recordedBy?.name || "Member", // ✅ Correct field: recordedBy
             formatCurrency(e.amount)
         ]),
         theme: "striped",
-        headStyles: { fillColor: [198, 40, 40] }, // Red header for expenses
+        headStyles: { fillColor: [198, 40, 40] },
         columnStyles: { 3: { halign: "right", fontStyle: "bold" } }
       });
       y = doc.lastAutoTable.finalY + 15;
@@ -116,10 +115,35 @@ export function exportFinancialReportPDF({
       doc.setFontSize(10); doc.setTextColor(100); doc.text("No expenses recorded.", 14, y + 10); y+=20;
   }
 
-  // ================= 5. DETAILED DONATIONS =================
+  // ================= 5. FESTIVAL CHANDA LIST =================
   if (y > 230) { doc.addPage(); y = 20; }
   
-  doc.setFontSize(14); doc.setTextColor(46, 125, 50); doc.text("Donation List", 14, y);
+  doc.setFontSize(14); doc.setTextColor(46, 125, 50); doc.text("Festival Chanda (Member Fees)", 14, y);
+  y += 5;
+
+  if (details.puja.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [["Date", "Member Name", "Notes", "Amount"]],
+        body: details.puja.map(p => [
+            new Date(p.createdAt).toLocaleDateString(),
+            p.user?.name || "Unknown", // ✅ FIX: Use p.user.name, not p.member.name
+            p.notes || "-",
+            formatCurrency(p.amount)
+        ]),
+        theme: "striped",
+        headStyles: { fillColor: [76, 175, 80] },
+        columnStyles: { 3: { halign: "right", fontStyle: "bold" } }
+      });
+      y = doc.lastAutoTable.finalY + 20;
+  } else {
+      doc.setFontSize(10); doc.setTextColor(100); doc.text("No festival chanda recorded.", 14, y + 10); y+=20;
+  }
+
+  // ================= 6. PUBLIC DONATIONS =================
+  if (y > 230) { doc.addPage(); y = 20; }
+  
+  doc.setFontSize(14); doc.setTextColor(245, 158, 11); doc.text("Public Donations", 14, y);
   y += 5;
 
   if (details.donations.length > 0) {
@@ -132,7 +156,7 @@ export function exportFinancialReportPDF({
             formatCurrency(d.amount)
         ]),
         theme: "striped",
-        headStyles: { fillColor: [46, 125, 50] }, // Green header
+        headStyles: { fillColor: [245, 158, 11] }, // Amber
         columnStyles: { 2: { halign: "right", fontStyle: "bold" } }
       });
       y = doc.lastAutoTable.finalY + 15;
@@ -140,31 +164,7 @@ export function exportFinancialReportPDF({
       doc.setFontSize(10); doc.setTextColor(100); doc.text("No donations recorded.", 14, y + 10); y+=20;
   }
 
-  // ================= 6. PUJA CONTRIBUTIONS =================
-  if (y > 230) { doc.addPage(); y = 20; }
-  
-  doc.setFontSize(14); doc.setTextColor(46, 125, 50); doc.text("Puja Contributions", 14, y);
-  y += 5;
-
-  if (details.puja.length > 0) {
-      autoTable(doc, {
-        startY: y,
-        head: [["Date", "Member Name", "Amount"]],
-        body: details.puja.map(p => [
-            new Date(p.createdAt).toLocaleDateString(),
-            p.member?.name || "Unknown",
-            formatCurrency(p.amount)
-        ]),
-        theme: "striped",
-        headStyles: { fillColor: [76, 175, 80] }, // Lighter Green
-        columnStyles: { 2: { halign: "right", fontStyle: "bold" } }
-      });
-      y = doc.lastAutoTable.finalY + 20;
-  } else {
-      doc.setFontSize(10); doc.setTextColor(100); doc.text("No puja contributions recorded.", 14, y + 10); y+=20;
-  }
-
-  // ================= 7. SIGNATURE (Always at bottom of last page) =================
+  // ================= 7. SIGNATURE =================
   if (y > 250) { doc.addPage(); y = 20; }
   
   const signatureY = y + 20;
@@ -172,16 +172,7 @@ export function exportFinancialReportPDF({
   doc.line(140, signatureY, 190, signatureY);
   doc.setFontSize(10); doc.setTextColor(100); doc.setFont(undefined, 'normal');
   doc.text("Treasurer Signature", 165, signatureY + 5, { align: "center" });
-  doc.text("Saraswati Club Committee", 165, signatureY + 10, { align: "center" });
-
-  // Page Numbers
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text(`Page ${i} of ${pageCount}`, 190, 285, { align: "right" });
-  }
+  doc.text("Committee", 165, signatureY + 10, { align: "center" });
 
   doc.save(`Financial_Report_${year}.pdf`);
 }

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import api from "../api/axios";
-import { Loader2, Calendar, Coins, Settings } from "lucide-react";
+import { Loader2, Calendar, Coins, Settings, X } from "lucide-react";
 
-export default function CreateYearModal({ onSuccess }) {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+export default function CreateYearModal({ onSuccess, onClose }) {
+  const { register, handleSubmit, watch } = useForm({
     defaultValues: {
       frequency: "weekly",
       totalInstallments: 52,
@@ -19,20 +19,18 @@ export default function CreateYearModal({ onSuccess }) {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      // 🚀 Create the Year with Rules
       await api.post("/years", {
         name: data.name,
         startDate: data.startDate,
         endDate: data.endDate,
         openingBalance: Number(data.openingBalance),
-        // The Rules:
         subscriptionFrequency: data.frequency,
         totalInstallments: Number(data.totalInstallments),
         amountPerInstallment: Number(data.amountPerInstallment)
       });
       
       alert("Festival Year Started Successfully!");
-      onSuccess(); // Refresh the dashboard
+      onSuccess(); 
     } catch (err) {
       alert(err.response?.data?.message || "Failed to create year");
     } finally {
@@ -41,9 +39,17 @@ export default function CreateYearModal({ onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden relative">
         
+        {/* ✅ CLOSE BUTTON */}
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all z-10"
+        >
+          <X size={20} />
+        </button>
+
         {/* Header */}
         <div className="bg-indigo-600 p-6 text-white text-center">
           <Calendar className="w-10 h-10 mx-auto mb-2 opacity-90" />
@@ -51,7 +57,7 @@ export default function CreateYearModal({ onSuccess }) {
           <p className="text-indigo-100 text-sm">Define your collection rules for this year</p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           
           {/* 1. Name & Dates */}
           <div>
@@ -61,7 +67,8 @@ export default function CreateYearModal({ onSuccess }) {
             <input
               {...register("name", { required: true })}
               className="w-full border-2 border-gray-100 rounded-xl px-4 py-2 focus:border-indigo-500 outline-none font-medium"
-              placeholder="e.g. Durga Puja 2025"
+              placeholder="e.g. Durga Puja 2026"
+              autoFocus
             />
           </div>
 
@@ -76,7 +83,7 @@ export default function CreateYearModal({ onSuccess }) {
             </div>
           </div>
 
-          {/* 2. Financial Rules (Moved from Register) */}
+          {/* 2. Financial Rules */}
           <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
              <h3 className="text-sm font-bold text-indigo-700 mb-3 flex items-center gap-2">
                <Settings size={16}/> Collection Rules
@@ -131,16 +138,25 @@ export default function CreateYearModal({ onSuccess }) {
               className="w-full border-2 border-gray-100 rounded-xl px-4 py-2 focus:border-green-500 outline-none"
               placeholder="0"
             />
-            <p className="text-xs text-gray-400 mt-1">Cash in hand from previous years.</p>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition flex justify-center items-center gap-2"
-          >
-            {loading ? <Loader2 className="animate-spin" /> : "Start Festival Year"}
-          </button>
+          {/* ACTIONS */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition flex justify-center items-center gap-2 shadow-lg shadow-indigo-200"
+            >
+              {loading ? <Loader2 className="animate-spin" /> : "Start Year"}
+            </button>
+          </div>
 
         </form>
       </div>

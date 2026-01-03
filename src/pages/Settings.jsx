@@ -1,23 +1,28 @@
 import { useEffect, useState } from "react";
-import axios from "../api/axios";
+import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
-import { Save, AlertTriangle, CheckCircle, PlusCircle, Lock, Calculator } from "lucide-react";
+import { 
+  Save, AlertTriangle, CheckCircle, PlusCircle, Lock, Calculator, Calendar, Loader2 
+} from "lucide-react";
 
 export default function Settings() {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { activeClub } = useAuth(); // Check role
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
+  
+  // State to track the Active Year ID for updates
+  const [activeYearId, setActiveYearId] = useState(null);
   const [noActiveCycle, setNoActiveCycle] = useState(false);
 
-  // Form State
+  // Unified Form State
   const [formData, setFormData] = useState({
     name: "",
     startDate: "",
     endDate: "",
-    weeklyAmount: 0,
-    totalWeeks: 52,
-    openingBalance: "",
-    isClosed: false,
+    subscriptionFrequency: "weekly", // weekly, monthly, none
+    amountPerInstallment: 0,
+    totalInstallments: 52,
+    openingBalance: 0,
   });
 
   /* ================= LOAD SETTINGS ================= */
@@ -27,103 +32,101 @@ export default function Settings() {
 
   const fetchSettings = async () => {
     try {
-      const res = await axios.get("/settings");
-      if (res.data.data) {
-        const d = res.data.data;
+      setLoading(true);
+      const res = await api.get("/years/active");
+      const d = res.data.data;
+      
+      if (d) {
         setNoActiveCycle(false);
+        setActiveYearId(d._id);
         setFormData({
           name: d.name,
           startDate: d.startDate ? d.startDate.slice(0, 10) : "",
           endDate: d.endDate ? d.endDate.slice(0, 10) : "",
-          weeklyAmount: d.weeklyAmount,
-          totalWeeks: d.totalWeeks,
-          openingBalance: d.openingBalance || "",
-          isClosed: d.isClosed,
+          subscriptionFrequency: d.subscriptionFrequency || "weekly",
+          amountPerInstallment: d.amountPerInstallment || 0,
+          totalInstallments: d.totalInstallments || 52,
+          openingBalance: d.openingBalance || 0,
         });
-      } else {
-        setNoActiveCycle(true);
-        // Default to today
-        const today = new Date().toISOString().split('T')[0];
-        setFormData(prev => ({ ...prev, startDate: today }));
       }
     } catch (err) {
+      // 404 means no active year
       setNoActiveCycle(true);
-    }
-  };
-
-  /* ================= VALIDATION LOGIC ================= */
-  const isValid = () => {
-    if (new Date(formData.startDate) > new Date(formData.endDate)) {
-      setMessage({ type: "error", text: "End Date must be after Start Date" });
-      return false;
-    }
-    if (formData.weeklyAmount < 0 || formData.totalWeeks < 0) {
-      setMessage({ type: "error", text: "Amounts cannot be negative" });
-      return false;
-    }
-    return true;
-  };
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    if (!isValid()) return;
-    
-    setLoading(true);
-    try {
-      await axios.put("/settings", formData);
-      setMessage({ type: "success", text: "Settings updated successfully!" });
-    } catch (err) {
-      setMessage({ type: "error", text: err.response?.data?.message || "Update failed" });
+      const today = new Date().toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, startDate: today, name: `New Year ${new Date().getFullYear()}` }));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreate = async (e) => {
+  /* ================= HANDLERS ================= */
+  const isValid = () => {
+    if (new Date(formData.startDate) > new Date(formData.endDate)) {
+      setMessage({ type: "error", text: "End Date must be after Start Date" });
+      return false;
+    }
+    return true;
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!isValid()) return;
+    if (activeClub?.role !== 'admin') return alert("Admins Only");
 
     setLoading(true);
     try {
-      const res = await axios.post("/cycles/create", formData);
-      alert(`Success! ${res.data.message}`);
+      if (noActiveCycle) {
+        // CREATE NEW
+        await api.post("/years", formData);
+        alert("New Festival Year Started!");
+      } else {
+        // UPDATE EXISTING
+        await api.put(`/years/${activeYearId}`, formData);
+        setMessage({ type: "success", text: "Settings updated successfully!" });
+      }
+      // Refresh
       window.location.reload();
     } catch (err) {
-      setMessage({ type: "error", text: err.response?.data?.message || "Failed to create cycle" });
+      setMessage({ type: "error", text: err.response?.data?.message || "Operation failed" });
       setLoading(false);
     }
   };
 
-  // ... (Keep handleCloseYear same as before) ...
   const handleCloseYear = async () => {
-      const confirmText = prompt(
-        "TYPE 'CLOSE' TO CONFIRM.\n\nThis will permanently FREEZE the current financial year and calculate the Closing Balance. This cannot be undone."
-      );
-  
-      if (confirmText !== "CLOSE") return;
-  
-      try {
-        setLoading(true);
-        const res = await axios.post("/cycles/close");
-        alert(res.data.message);
-        window.location.reload(); 
-      } catch (err) {
-        alert(err.response?.data?.message || "Failed to close year");
-        setLoading(false);
-      }
-    };
+    if (activeClub?.role !== 'admin') return;
+    const confirmText = prompt(
+      "TYPE 'CLOSE' TO CONFIRM.\n\nThis will FREEZE the current financial year. You cannot undo this."
+    );
 
-  // ✅ AUTO-CALCULATION
-  const expectedPerMember = formData.weeklyAmount * formData.totalWeeks;
+    if (confirmText !== "CLOSE") return;
+
+    try {
+      setLoading(true);
+      await api.post(`/years/${activeYearId}/close`);
+      alert("Year Closed Successfully.");
+      window.location.reload(); 
+    } catch (err) {
+      alert("Failed to close year");
+      setLoading(false);
+    }
+  };
+
+  // Projection Calculation
+  const totalExpected = formData.amountPerInstallment * formData.totalInstallments;
+
+  if (loading && !formData.name) return <div className="p-10 text-center"><Loader2 className="animate-spin mx-auto text-indigo-600"/></div>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800">System Settings</h2>
-        <p className="text-gray-500 text-sm">
-          {noActiveCycle ? "Start a new financial year." : "Manage active cycle configuration."}
-        </p>
+    <div className="max-w-3xl mx-auto space-y-6 pb-10">
+      
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">System Settings</h2>
+          <p className="text-gray-500 text-sm">
+            {noActiveCycle ? "Setup a new financial year." : "Manage active cycle configuration."}
+          </p>
+        </div>
       </div>
 
       {message && (
@@ -134,32 +137,33 @@ export default function Settings() {
       )}
 
       {/* FORM CARD */}
-      <div className={`rounded-xl shadow border overflow-hidden ${noActiveCycle ? "bg-white border-indigo-100" : "bg-white border-gray-200"}`}>
+      <div className={`rounded-2xl shadow-sm border overflow-hidden ${noActiveCycle ? "bg-white border-indigo-200" : "bg-white border-gray-200"}`}>
+        
         {/* Banner */}
         <div className={`px-6 py-4 border-b flex justify-between items-center ${noActiveCycle ? "bg-indigo-50" : "bg-gray-50"}`}>
           <h3 className={`font-bold flex items-center gap-2 ${noActiveCycle ? "text-indigo-700" : "text-gray-700"}`}>
-            {noActiveCycle ? <PlusCircle size={20} /> : null}
+            {noActiveCycle ? <PlusCircle size={20} /> : <Calendar size={20} />}
             {noActiveCycle ? "New Cycle Setup" : "Active Cycle Configuration"}
           </h3>
-          {!noActiveCycle && formData.isClosed && (
-            <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-red-200">
-              <Lock size={12} /> LOCKED
+          {activeClub?.role === "admin" && !noActiveCycle && (
+            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-green-200">
+              ACTIVE
             </span>
           )}
         </div>
 
-        <form onSubmit={noActiveCycle ? handleCreate : handleUpdate} className="p-6 space-y-6">
+        <form onSubmit={handleSave} className="p-6 space-y-6">
+          
           {/* 1. Basic Info */}
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cycle Name</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Event Name</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                disabled={!noActiveCycle && formData.isClosed}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                placeholder='e.g., "Saraswati Puja 2026"'
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
+                placeholder='e.g. "Durga Puja 2026"'
                 required
               />
             </div>
@@ -171,7 +175,6 @@ export default function Settings() {
                   type="date"
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  disabled={!noActiveCycle && formData.isClosed}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   required
                 />
@@ -180,10 +183,9 @@ export default function Settings() {
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Date</label>
                 <input
                   type="date"
-                  min={formData.startDate} // ✅ HTML VALIDATION
+                  min={formData.startDate} 
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  disabled={!noActiveCycle && formData.isClosed}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   required
                 />
@@ -193,91 +195,112 @@ export default function Settings() {
 
           <hr className="border-dashed" />
 
-          {/* 2. Financials */}
+          {/* 2. Collection Rules */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
                <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Weekly Amount (₹)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.weeklyAmount}
-                  onChange={(e) => setFormData({ ...formData, weeklyAmount: e.target.value })}
-                  disabled={!noActiveCycle && formData.isClosed}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-gray-700"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Total Weeks</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="52"
-                  value={formData.totalWeeks}
-                  onChange={(e) => setFormData({ ...formData, totalWeeks: e.target.value })}
-                  disabled={!noActiveCycle && formData.isClosed}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  required
-                />
-              </div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Frequency</label>
+                  <select 
+                    value={formData.subscriptionFrequency}
+                    onChange={(e) => setFormData({...formData, subscriptionFrequency: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none"
+                  >
+                    <option value="weekly">Weekly Collection</option>
+                    <option value="monthly">Monthly Collection</option>
+                    <option value="none">No Recurring (Donations Only)</option>
+                  </select>
+               </div>
+
+               {formData.subscriptionFrequency !== 'none' && (
+                 <>
+                   <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                      Amount per {formData.subscriptionFrequency === 'weekly' ? 'Week' : 'Month'} (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.amountPerInstallment}
+                      onChange={(e) => setFormData({ ...formData, amountPerInstallment: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none font-bold text-gray-700"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                      Total {formData.subscriptionFrequency === 'weekly' ? 'Weeks' : 'Months'}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={formData.totalInstallments}
+                      onChange={(e) => setFormData({ ...formData, totalInstallments: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none"
+                      required
+                    />
+                  </div>
+                 </>
+               )}
             </div>
 
-            {/* ✅ DYNAMIC PREVIEW BOX */}
-            <div className="bg-indigo-50 rounded-xl p-4 flex flex-col justify-center border border-indigo-100">
-               <div className="flex items-center gap-2 text-indigo-800 font-semibold mb-2">
-                 <Calculator size={18} /> Projection
+            {/* PREVIEW BOX */}
+            <div className="bg-indigo-50 rounded-xl p-5 flex flex-col justify-center border border-indigo-100">
+               <div className="flex items-center gap-2 text-indigo-800 font-bold mb-2 uppercase text-xs tracking-wider">
+                 <Calculator size={16} /> Subscription Projection
                </div>
-               <p className="text-sm text-indigo-600">Expected Per Member:</p>
-               <p className="text-2xl font-bold text-indigo-700">₹ {expectedPerMember}</p>
-               <p className="text-xs text-indigo-400 mt-1">Total collectable from one person</p>
+               <p className="text-3xl font-bold text-indigo-700">₹ {totalExpected.toLocaleString()}</p>
+               <p className="text-xs text-indigo-500 mt-1 font-medium">Target per member per year</p>
             </div>
           </div>
 
-          {/* 3. Opening Balance (New Cycle Only) */}
+          {/* 3. Opening Balance (New Only) */}
           {noActiveCycle && (
             <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
-              <label className="block text-xs font-bold text-yellow-700 uppercase mb-1">Opening Balance Override</label>
+              <label className="block text-xs font-bold text-yellow-700 uppercase mb-1">Opening Balance</label>
               <input
                 type="number"
                 value={formData.openingBalance}
                 onChange={(e) => setFormData({ ...formData, openingBalance: e.target.value })}
                 className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-white"
-                placeholder="Leave blank to use Previous Closing Balance"
+                placeholder="0"
               />
-              <p className="text-xs text-yellow-600 mt-2">
-                * By default, the system automatically fetches the <b>Closing Balance</b> from the last closed year.
+              <p className="text-[10px] text-yellow-600 mt-2">
+                Use this to carry forward cash from previous years.
               </p>
             </div>
           )}
 
           {/* Submit */}
-          <div className="pt-2">
-            {!formData.isClosed && (
+          {activeClub?.role === 'admin' && (
+            <div className="pt-2">
                <button
-               type="submit"
-               disabled={loading}
-               className={`w-full py-3 rounded-lg font-bold text-white shadow-md transition-transform active:scale-95 flex justify-center gap-2 ${noActiveCycle ? "bg-indigo-600 hover:bg-indigo-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
-             >
-               {noActiveCycle ? <PlusCircle size={20} /> : <Save size={20} />}
-               {noActiveCycle ? "Create New Financial Cycle" : "Save Changes"}
-             </button>
-            )}
-           
-          </div>
+                 type="submit"
+                 disabled={loading}
+                 className={`w-full py-3 rounded-xl font-bold text-white shadow-md transition-transform active:scale-95 flex justify-center gap-2 ${noActiveCycle ? "bg-indigo-600 hover:bg-indigo-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
+               >
+                 {noActiveCycle ? <PlusCircle size={20} /> : <Save size={20} />}
+                 {loading ? <Loader2 className="animate-spin" /> : (noActiveCycle ? "Start Festival Year" : "Save Changes")}
+               </button>
+            </div>
+          )}
         </form>
       </div>
 
-      {/* DANGER ZONE */}
-      {!noActiveCycle && !formData.isClosed && (
-        <div className="border border-red-200 rounded-xl p-6 bg-white shadow-sm">
+      {/* DANGER ZONE (Close Year) */}
+      {!noActiveCycle && activeClub?.role === 'admin' && (
+        <div className="border border-red-200 rounded-xl p-6 bg-white shadow-sm mt-8">
           <h3 className="text-red-700 font-bold flex items-center gap-2 mb-2">
-            <AlertTriangle size={20} /> Close Financial Year
+            <Lock size={20} /> End Financial Year
           </h3>
           <p className="text-sm text-gray-600 mb-4">
-            Permanently freeze this cycle and calculate closing balance. This action cannot be undone.
+            Closing the year will freeze all data and subscriptions. You should only do this after the festival is complete and all accounts are settled.
           </p>
-          <button onClick={handleCloseYear} disabled={loading} className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-semibold hover:bg-red-100 transition">
+          <button 
+            onClick={handleCloseYear} 
+            disabled={loading} 
+            className="px-5 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-bold hover:bg-red-600 hover:text-white transition-colors"
+          >
             Close Year Permanently
           </button>
         </div>

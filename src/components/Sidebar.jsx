@@ -7,7 +7,11 @@ import {
   Receipt, 
   LogOut,
   ShieldCheck,
-  X // Close icon for mobile
+  X,
+  Settings, // ✅ Imported Icon
+  CreditCard,
+  FileText,
+  BadgeIndianRupee
 } from "lucide-react";
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -18,14 +22,18 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const menuItems = [
     { path: "/", label: "Overview", icon: LayoutDashboard },
+    { path: "/contributions", label: "Subscriptions", icon: CreditCard },
+    { path: "/puja-contributions", label: "Festival Chanda", icon: BadgeIndianRupee },
     { path: "/members", label: "Members", icon: Users },
     { path: "/donations", label: "Donations", icon: Wallet },
     { path: "/expenses", label: "Expenses", icon: Receipt },
+    { path: "/reports", label: "Reports", icon: FileText },
+    { path: "/settings", label: "Settings", icon: Settings }, // ✅ New Link
   ];
 
   return (
     <>
-      {/* 🌑 MOBILE BACKDROP (Click to close) */}
+      {/* 🌑 MOBILE BACKDROP */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm transition-opacity"
@@ -33,7 +41,7 @@ export default function Sidebar({ isOpen, onClose }) {
         />
       )}
 
-      {/* 📁 THE SIDEBAR CONTAINER */}
+      {/* 📁 SIDEBAR CONTAINER */}
       <div className={`
         fixed md:static inset-y-0 left-0 z-40
         w-64 bg-indigo-900 text-white flex flex-col shadow-2xl
@@ -54,7 +62,6 @@ export default function Sidebar({ isOpen, onClose }) {
             </div>
           </div>
           
-          {/* Mobile Close Button */}
           <button onClick={onClose} className="md:hidden text-indigo-300 hover:text-white">
             <X size={24} />
           </button>
@@ -66,7 +73,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <Link
               key={item.path}
               to={item.path}
-              onClick={onClose} // Auto-close sidebar on mobile when clicked
+              onClick={onClose}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                 isActive(item.path)
                   ? "bg-indigo-600 text-white shadow-md translate-x-1"

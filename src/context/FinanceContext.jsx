@@ -8,40 +8,34 @@ export const FinanceProvider = ({ children }) => {
   const [pujaTotal, setPujaTotal] = useState(0);
   const [donationTotal, setDonationTotal] = useState(0);
   const [approvedExpenses, setApprovedExpenses] = useState(0);
-  const [openingBalance, setOpeningBalance] = useState(0); // ✅ NEW STATE
+  const [openingBalance, setOpeningBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ UPDATED FORMULA: Includes Opening Balance
+  // Calculated strictly from frontend state to ensure UI consistency
   const centralFund = 
     openingBalance + weeklyTotal + pujaTotal + donationTotal - approvedExpenses;
 
-  /* ===== FETCH ALL TOTALS ===== */
+  /* ===== FETCH FINANCIAL SUMMARY ===== */
   const fetchCentralFund = async () => {
     try {
-      // Run all API calls in parallel for speed
-      const [
-        weeklyRes,
-        pujaRes,
-        donationRes,
-        expenseRes,
-        cycleRes // ✅ Fetch Active Cycle
-      ] = await Promise.all([
-        api.get("/finance/weekly-total"),
-        api.get("/finance/puja-total"),
-        api.get("/finance/donations-total"),
-        api.get("/finance/expenses-total"),
-        api.get("/cycles/active").catch(() => ({ data: { data: { openingBalance: 0 } } })) // Handle error if no cycle
-      ]);
-
-      setWeeklyTotal(weeklyRes.data.total || 0);
-      setPujaTotal(pujaRes.data.total || 0);
-      setDonationTotal(donationRes.data.total || 0);
-      setApprovedExpenses(expenseRes.data.total || 0);
+      setLoading(true);
+      // ✅ SaaS Update: Use the single aggregated endpoint
+      const res = await api.get("/finance/summary");
       
-      // ✅ Set Opening Balance
-      setOpeningBalance(cycleRes.data?.data?.openingBalance || 0);
+      const data = res.data.data;
+
+      // Map backend fields to context state
+      setOpeningBalance(data.openingBalance || 0);
+      setWeeklyTotal(data.breakdown?.subscriptions || 0); // "Subscriptions"
+      setPujaTotal(data.breakdown?.memberFees || 0);      // "Member Fees" (replaces Puja)
+      setDonationTotal(data.breakdown?.donations || 0);
+      setApprovedExpenses(data.totalExpense || 0);
 
     } catch (err) {
-      console.error("Finance fetch error", err);
+      console.error("Finance fetch error:", err);
+      // Optional: Reset to 0 on error or keep stale data
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,9 +50,10 @@ export const FinanceProvider = ({ children }) => {
         pujaTotal,
         donationTotal,
         approvedExpenses,
-        openingBalance, // ✅ Exported for UI use
+        openingBalance,
         centralFund,
         fetchCentralFund,
+        loading
       }}
     >
       {children}

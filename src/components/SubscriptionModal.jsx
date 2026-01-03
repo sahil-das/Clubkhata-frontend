@@ -1,20 +1,39 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios";
-import { X, Loader2, CheckCircle, IndianRupee, AlertCircle } from "lucide-react";
+import { 
+  X, Loader2, CheckCircle, IndianRupee, AlertCircle, ChevronDown, ChevronUp, Plus
+} from "lucide-react";
 
-export default function SubscriptionModal({ memberId, onClose,canEdit }) {
+export default function SubscriptionModal({ memberId, onClose, canEdit }) {
   const [data, setData] = useState(null);
+  const [chandaHistory, setChandaHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [processingId, setProcessingId] = useState(null); // To track which box is spinning
+  
+  // States for Weekly Grid
+  const [processingId, setProcessingId] = useState(null);
+  const [isGridExpanded, setIsGridExpanded] = useState(false); // Collapsible State
 
-  // 1. Fetch Subscription Data (Auto-creates if missing)
+  // States for Festival Chanda
+  const [chandaAmount, setChandaAmount] = useState("");
+  const [addingChanda, setAddingChanda] = useState(false);
+
+  /* ================= LOAD DATA ================= */
   const fetchData = async () => {
     try {
-      const res = await api.get(`/subscriptions/member/${memberId}`);
-      setData(res.data.data);
+      // 1. Fetch Subscription Data (Recurring)
+      const subRes = await api.get(`/subscriptions/member/${memberId}`);
+      const subData = subRes.data.data;
+      setData(subData);
+
+      // 2. Fetch Festival Chanda History (One-Time)
+      if (subData?.memberUserId) {
+         const feeRes = await api.get(`/member-fees/member/${subData.memberUserId}`);
+         setChandaHistory(feeRes.data.data.records || []);
+      }
+
     } catch (err) {
       console.error(err);
-      alert("Failed to load subscription data");
+      alert("Failed to load data");
       onClose();
     } finally {
       setLoading(false);
@@ -25,11 +44,9 @@ export default function SubscriptionModal({ memberId, onClose,canEdit }) {
     fetchData();
   }, [memberId]);
 
-  // 2. Handle Payment Toggle
+  /* ================= TOGGLE WEEKLY/MONTHLY ================= */
   const handleToggle = async (installmentNumber) => {
-    if (!canEdit) return; // 🔒 Stop clicks if not admin
-    // Prevent double clicks
-    if (processingId) return;
+    if (!canEdit || processingId) return;
 
     setProcessingId(installmentNumber);
     try {
@@ -38,7 +55,6 @@ export default function SubscriptionModal({ memberId, onClose,canEdit }) {
         installmentNumber
       });
       
-      // Update local state instantly (Optimistic UI would be faster, but this is safer)
       setData(prev => ({
         ...prev,
         subscription: res.data.data
@@ -50,97 +66,190 @@ export default function SubscriptionModal({ memberId, onClose,canEdit }) {
     }
   };
 
+  /* ================= ADD FESTIVAL CHANDA ================= */
+  const handleAddChanda = async (e) => {
+    e.preventDefault();
+    if (!chandaAmount || !canEdit) return;
+
+    setAddingChanda(true);
+    try {
+      // ✅ Now data.memberUserId exists thanks to backend fix
+      await api.post("/member-fees", {
+        userId: data.memberUserId, 
+        amount: Number(chandaAmount),
+        notes: "Quick Collect"
+      });
+      
+      setChandaAmount("");
+      // Refresh Data
+      await fetchData();
+    } catch (err) {
+      alert("Failed to add chanda. Is the festival year active?");
+    } finally {
+      setAddingChanda(false);
+    }
+  };
+
+  /* ================= HELPERS ================= */
+  const getLabel = (num) => {
+    if (data?.rules?.frequency === 'monthly') {
+      const date = new Date();
+      date.setMonth(num - 1);
+      return date.toLocaleString('default', { month: 'short' });
+    }
+    return num;
+  };
+
   if (!memberId) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         
         {/* HEADER */}
-        <div className="bg-indigo-900 text-white p-6 flex justify-between items-center shrink-0">
+        <div className="bg-indigo-900 text-white p-5 flex justify-between items-center shrink-0">
           <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
+            <h2 className="text-xl font-bold flex items-center gap-2">
               <IndianRupee className="text-yellow-400"/> {data?.memberName || "Loading..."}
             </h2>
-            {!loading && (
-               <p className="text-indigo-200 text-sm mt-1">
-                 {data?.rules?.frequency === 'weekly' ? 'Weekly' : 'Monthly'} Collection • ₹{data?.rules?.amount}/installment
-               </p>
-            )}
+            <p className="text-indigo-200 text-xs mt-1">
+               Managing collections for <span className="font-bold text-white">{data?.rules?.name || "Active Year"}</span>
+            </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
             <X size={24} />
           </button>
         </div>
 
-        {/* BODY */}
         {loading ? (
-          <div className="flex-1 flex items-center justify-center text-indigo-600">
+          <div className="flex-1 flex items-center justify-center text-indigo-600 min-h-[300px]">
             <Loader2 className="w-10 h-10 animate-spin" />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+          <div className="flex-1 overflow-y-auto bg-gray-50">
             
-            {/* STATS BAR */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-emerald-100 p-4 rounded-xl border border-emerald-200 text-emerald-800">
-                 <p className="text-xs font-bold uppercase opacity-70">Total Paid</p>
-                 <p className="text-3xl font-bold font-mono">₹{data?.subscription?.totalPaid}</p>
-              </div>
-              <div className="bg-white p-4 rounded-xl border border-gray-200 text-gray-600">
-                 <p className="text-xs font-bold uppercase opacity-70">Remaining Due</p>
-                 <p className="text-3xl font-bold font-mono">₹{data?.subscription?.totalDue}</p>
-              </div>
-            </div>
-
-            {/* THE GRID */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="text-gray-800 font-bold mb-4 flex items-center gap-2">
-                <CheckCircle size={18} className="text-indigo-600"/> Payment Record
-              </h3>
-              
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
-                {data?.subscription?.installments.map((inst) => (
-                  <button
-                    key={inst.number}
-                    onClick={() => handleToggle(inst.number)}
-                    disabled={!!processingId || !canEdit}
-                    className={`
-                      relative group h-14 rounded-lg font-bold text-sm flex flex-col items-center justify-center border-2 transition-all
-                      ${inst.isPaid 
-                        ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-200 hover:bg-emerald-600" 
-                        : "bg-white border-gray-100 text-gray-400"
-                      }
-                      ${canEdit && !inst.isPaid ? "hover:border-indigo-300 hover:text-indigo-500 cursor-pointer" : ""}
-                      ${!canEdit ? "cursor-default opacity-90" : ""}
-                    `}
+            {/* === 1. RECURRING SUBSCRIPTIONS (Collapsible) === */}
+            <div className="bg-white p-5 border-b border-gray-100">
+               <div className="flex justify-between items-center mb-4">
+                  <div>
+                      <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                         <CheckCircle size={18} className="text-indigo-600"/> 
+                         {data?.rules?.frequency === 'monthly' ? 'Monthly' : 'Weekly'} Subscription
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                         Paid: <span className="font-bold text-green-600">₹{data?.subscription?.totalPaid}</span> 
+                         <span className="mx-1">•</span>
+                         Due: <span className="font-bold text-red-500">₹{data?.subscription?.totalDue}</span>
+                      </p>
+                  </div>
+                  <button 
+                    onClick={() => setIsGridExpanded(!isGridExpanded)}
+                    className="text-xs font-bold text-indigo-600 flex items-center gap-1 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition"
                   >
-                    {/* SPINNER OVERLAY */}
-                    {processingId === inst.number ? (
-                       <Loader2 className="animate-spin" size={16} />
-                    ) : (
-                       <>
-                         <span>{inst.number}</span>
-                         {inst.isPaid && <span className="text-[9px] opacity-80 font-normal">PAID</span>}
-                       </>
-                    )}
+                    {isGridExpanded ? "Collapse" : "Expand Grid"}
+                    {isGridExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
                   </button>
-                ))}
-              </div>
+               </div>
+
+               {/* Collapsed State: Progress Bar */}
+               {!isGridExpanded && (
+                  <div className="space-y-2 cursor-pointer" onClick={() => setIsGridExpanded(true)}>
+                      <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                          <div 
+                             className="bg-indigo-500 h-full rounded-full transition-all duration-500"
+                             style={{ width: `${(data?.subscription?.totalPaid / (data?.subscription?.totalPaid + data?.subscription?.totalDue || 1)) * 100}%` }}
+                          ></div>
+                      </div>
+                      <p className="text-[10px] text-center text-gray-400">
+                         Tap to view all installments.
+                      </p>
+                  </div>
+               )}
+
+               {/* Expanded State: The Grid */}
+               {isGridExpanded && (
+                  <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 animate-in fade-in slide-in-from-top-2">
+                    {data?.subscription?.installments.map((inst) => (
+                      <button
+                        key={inst.number}
+                        onClick={() => handleToggle(inst.number)}
+                        disabled={!!processingId || !canEdit}
+                        className={`
+                          relative h-10 rounded text-xs font-bold flex items-center justify-center border transition-all
+                          ${inst.isPaid 
+                            ? "bg-emerald-500 border-emerald-500 text-white" 
+                            : "bg-white border-gray-200 text-gray-500 hover:border-indigo-300"
+                          }
+                          ${!canEdit ? "opacity-80 cursor-default" : "cursor-pointer"}
+                        `}
+                      >
+                        {processingId === inst.number ? <Loader2 className="animate-spin" size={12}/> : getLabel(inst.number)}
+                      </button>
+                    ))}
+                  </div>
+               )}
             </div>
 
-            {/* READ-ONLY NOTICE */}
+            {/* === 2. FESTIVAL CHANDA (One-Time) === */}
+            <div className="p-5">
+               <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
+                  <IndianRupee size={18} className="text-emerald-600"/> Festival Chanda
+               </h3>
+
+               {/* History List */}
+               <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-4">
+                  <div className="max-h-40 overflow-y-auto">
+                    {chandaHistory.length === 0 ? (
+                       <p className="text-xs text-gray-400 p-4 text-center">No extra contributions yet.</p>
+                    ) : (
+                       chandaHistory.map((fee) => (
+                          <div key={fee._id} className="flex justify-between items-center p-3 border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                             <div>
+                                <p className="font-bold text-gray-700 text-sm">₹ {fee.amount}</p>
+                                <p className="text-[10px] text-gray-400">{new Date(fee.createdAt).toLocaleDateString()}</p>
+                             </div>
+                             <div className="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500">
+                                {fee.notes || "Chanda"}
+                             </div>
+                          </div>
+                       ))
+                    )}
+                  </div>
+                  <div className="bg-gray-50 p-2 text-center text-xs font-bold text-gray-500 border-t border-gray-100">
+                     Total Chanda: ₹ {chandaHistory.reduce((acc, curr) => acc + curr.amount, 0)}
+                  </div>
+               </div>
+
+               {/* Add New Form */}
+               {canEdit && (
+                  <form onSubmit={handleAddChanda} className="flex gap-2">
+                     <div className="relative flex-1">
+                        <IndianRupee size={16} className="absolute left-3 top-3 text-gray-400"/>
+                        <input 
+                           type="number" 
+                           placeholder="Add Amount..." 
+                           className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none transition"
+                           value={chandaAmount}
+                           onChange={(e) => setChandaAmount(e.target.value)}
+                        />
+                     </div>
+                     <button 
+                        type="submit" 
+                        disabled={addingChanda || !chandaAmount}
+                        className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-emerald-100 transition"
+                     >
+                        {addingChanda ? <Loader2 className="animate-spin" size={18}/> : <Plus size={20}/>}
+                        Add
+                     </button>
+                  </form>
+               )}
+            </div>
+            
             {!canEdit && (
-              <div className="mt-4 bg-orange-50 text-orange-600 text-xs p-3 rounded-lg text-center font-bold">
-                Viewing Mode Only. Contact an Admin to update payments.
-              </div>
+               <div className="mx-5 mb-5 bg-orange-50 text-orange-600 text-xs p-3 rounded-lg flex items-center justify-center gap-2 font-bold">
+                  <AlertCircle size={14}/> View Only Mode
+               </div>
             )}
-
-            {/* INFO FOOTER */}
-            <div className="mt-6 flex items-center gap-2 text-xs text-gray-400 bg-blue-50 p-3 rounded-lg">
-              <AlertCircle size={14} className="text-blue-400"/>
-              <span>Green boxes are paid. Tap a box to toggle its status instantly. Totals update automatically.</span>
-            </div>
 
           </div>
         )}
