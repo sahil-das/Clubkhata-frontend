@@ -24,7 +24,7 @@ import Expenses from "./pages/Expenses";
 import Members from "./pages/Members";
 import MemberDetails from "./pages/MemberDetails";
 import Reports from "./pages/Reports";
-
+import RegisterClub from "./pages/RegisterClub";
 export default function App() {
   return (
     <AuthProvider>
@@ -33,6 +33,7 @@ export default function App() {
           <Routes>
             {/* --- Public Routes --- */}
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<RegisterClub />} />
 
             {/* --- Main Layout (Root "/" instead of "/dashboard") --- */}
             <Route
@@ -84,7 +85,10 @@ export default function App() {
                   </ProtectedRoute>
                 } 
               />
-              
+              <Route path="/" element={<Dashboard />}>
+                {/* ... existing routes ... */}
+                
+              </Route>
               <Route 
                 path="settings" 
                 element={

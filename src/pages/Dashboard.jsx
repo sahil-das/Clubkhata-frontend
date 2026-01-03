@@ -1,25 +1,34 @@
 import { useState } from "react";
+import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
-import { Outlet } from "react-router-dom"; // Ensure this is imported
+import TopBar from "../components/TopBar"; // 👈 Import new component
 
 export default function Dashboard() {
-  const [open, setOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* SIDEBAR */}
-      <Sidebar open={open} setOpen={setOpen} />
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      
+      {/* 1. SIDEBAR (Hidden on mobile by default) */}
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
 
-      {/* MAIN AREA */}
-      <div className="flex-1 flex flex-col">
-        <Navbar setOpen={setOpen} />
+      {/* 2. MAIN AREA */}
+      <div className="flex-1 flex flex-col min-w-0">
+        
+        {/* 🚀 TOP BAR (Replaces old mobile header) */}
+        <TopBar onMenuClick={() => setIsSidebarOpen(true)} />
 
-        <main className="p-4 md:p-6">
-          {/* REPLACE {children} WITH <Outlet /> */}
-          <Outlet />
+        {/* SCROLLABLE CONTENT */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
+
     </div>
   );
 }

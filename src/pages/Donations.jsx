@@ -1,241 +1,227 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
 import api from "../api/axios";
-import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { 
-  IndianRupee, 
-  Plus, 
-  Search, 
-  TrendingUp, 
-  User, 
-  Calendar,
-  X 
+  Plus, Search, Trash2, User, Phone, MapPin, IndianRupee, Loader2, Receipt, Calendar 
 } from "lucide-react";
 
 export default function Donations() {
-  const { fetchCentralFund } = useFinance();
-  const { user } = useAuth();
-
+  const { activeClub } = useAuth();
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [search, setSearch] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const [form, setForm] = useState({
-    donorName: "",
-    amount: "",
-  });
-
-  /* ================= LOAD DONATIONS ================= */
-  useEffect(() => {
-    loadDonations();
-  }, []);
-
-  const loadDonations = async () => {
+  // Fetch Donations
+  const fetchDonations = async () => {
     try {
       const res = await api.get("/donations");
       setDonations(res.data.data);
     } catch (err) {
-      console.error("Donation load error", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= ADD DONATION ================= */
-  const addDonation = async () => {
-    if (!form.donorName || !form.amount) return;
+  useEffect(() => {
+    fetchDonations();
+  }, []);
 
+  // Calculate Total
+  const totalAmount = donations.reduce((sum, d) => sum + d.amount, 0);
+
+  // Filter Logic
+  const filteredDonations = donations.filter(d => 
+    d.donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    d.receiptNo?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Delete Handler
+  const handleDelete = async (id) => {
+    if(!window.confirm("Delete this donation record? This will affect the total balance.")) return;
     try {
-      await api.post("/donations", {
-        donorName: form.donorName,
-        amount: Number(form.amount),
-        addedBy: user._id, // Track who added it
-      });
-
-      setForm({ donorName: "", amount: "" });
-      setShowForm(false);
-      await loadDonations();
-      await fetchCentralFund(); // Update Dashboard totals
+      await api.delete(`/donations/${id}`);
+      setDonations(donations.filter(d => d._id !== id));
     } catch (err) {
-      alert("Failed to save donation");
+      alert("Failed to delete donation");
     }
   };
 
-  /* ================= CALCULATIONS & FILTER ================= */
-  const totalDonation = donations.reduce((sum, d) => sum + d.amount, 0);
-
-  const filteredDonations = donations.filter((d) =>
-    d.donorName.toLowerCase().includes(search.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <div className="p-8 text-center text-gray-500 flex flex-col items-center">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        Loading donations...
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6">
       
-      {/* ================= TOP SUMMARY SECTION ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-        {/* Total Card */}
-        <div className="bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-2xl p-6 shadow-lg flex items-center justify-between">
-          <div>
-            <p className="text-emerald-100 font-medium mb-1">Total Collections</p>
-            <h3 className="text-3xl font-bold">₹ {totalDonation.toLocaleString()}</h3>
-          </div>
-          <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-            <TrendingUp size={28} className="text-white" />
-          </div>
+      {/* HEADER & TOTAL */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-indigo-900 text-white p-6 rounded-2xl shadow-lg">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Receipt className="text-indigo-300"/> Public Donations
+          </h1>
+          <p className="text-indigo-200 text-sm mt-1">Collections from non-members</p>
         </div>
-
-        {/* Action Bar (Search + Add Button) */}
-        <div className="flex flex-col gap-3">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search donor name..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm transition-all"
-            />
-          </div>
-
-          
-            <button
-             onClick={() => setShowForm(!showForm)}
-             className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all shadow-sm
-               ${showForm 
-                 ? "bg-gray-100 text-gray-600 hover:bg-gray-200" 
-                 : "bg-indigo-600 text-white hover:bg-indigo-700"
-               }`}
-           >
-             {showForm ? <X size={20} /> : <Plus size={20} />}
-             {showForm ? "Cancel" : "Add New Donation"}
-           </button>
-          
+        <div className="text-right">
+          <p className="text-xs font-bold uppercase tracking-wider text-indigo-300">Total Collected</p>
+          <p className="text-3xl font-bold font-mono">₹{totalAmount.toLocaleString()}</p>
         </div>
       </div>
 
-      {/* ================= ADD DONATION FORM (COLLAPSIBLE) ================= */}
-      {showForm && (
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 animate-fade-in-down">
-          <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
-              <Plus size={16} />
-            </div>
-            Record New Donation
-          </h3>
+      {/* ACTIONS ROW */}
+      <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+          <input 
+            type="text"
+            placeholder="Search donor name or receipt no..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <button 
+          onClick={() => setShowAddModal(true)}
+          className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-md"
+        >
+          <Plus size={20} /> New Donation
+        </button>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Donor Name</label>
-              <input
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
-                placeholder="Ex: Rakesh Kumar"
-                value={form.donorName}
-                onChange={(e) => setForm({ ...form, donorName: e.target.value })}
-              />
-            </div>
+      {/* DONATIONS LIST */}
+      {loading ? (
+        <div className="text-center py-10 text-gray-500"><Loader2 className="animate-spin mx-auto mb-2"/>Loading records...</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredDonations.map((d) => (
+            <div key={d._id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition relative group">
+              
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-3">
+                   <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                     {d.donorName.charAt(0)}
+                   </div>
+                   <div>
+                     <h3 className="font-bold text-gray-800">{d.donorName}</h3>
+                     <p className="text-xs text-gray-500 flex items-center gap-1">
+                       <Calendar size={10}/> {new Date(d.date).toLocaleDateString()}
+                     </p>
+                   </div>
+                </div>
+                <span className="font-mono font-bold text-lg text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                  ₹{d.amount}
+                </span>
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Amount (₹)</label>
-              <input
-                type="number"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition font-semibold text-gray-700"
-                placeholder="0"
-                value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              />
-            </div>
-          </div>
+              <div className="space-y-2 text-sm text-gray-600 mb-4 pl-1">
+                {d.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-gray-400"/> {d.phone}</div>}
+                {d.address && <div className="flex items-center gap-2"><MapPin size={14} className="text-gray-400"/> {d.address}</div>}
+                {d.receiptNo && <div className="flex items-center gap-2"><Receipt size={14} className="text-gray-400"/> Receipt: {d.receiptNo}</div>}
+              </div>
 
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={addDonation}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-medium shadow-md transition-transform active:scale-95"
-            >
-              Confirm Donation
-            </button>
-          </div>
+              <div className="flex justify-between items-center pt-3 border-t border-gray-50 text-xs text-gray-400">
+                <span>By: {d.collectedBy?.name || "Unknown"}</span>
+                
+                {activeClub?.role === "admin" && (
+                  <button 
+                    onClick={() => handleDelete(d._id)}
+                    className="text-red-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+
+            </div>
+          ))}
+          
+          {filteredDonations.length === 0 && (
+            <div className="col-span-full text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              No donations found.
+            </div>
+          )}
         </div>
       )}
 
-      {/* ================= LIST VIEW (RESPONSIVE) ================= */}
-      
-      {/* Mobile Cards (Visible on Small Screens) */}
-      <div className="block sm:hidden space-y-3">
-        {filteredDonations.map((d) => (
-          <div key={d._id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-            <div>
-              <p className="font-bold text-gray-800 text-lg">{d.donorName}</p>
-              <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                <Calendar size={12} />
-                <span>{new Date(d.createdAt).toLocaleDateString()}</span>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
-                <User size={12} />
-                <span>By: {d.addedBy?.name || d.addedBy?.email || "System"}</span>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="block text-xl font-bold text-emerald-600">₹{d.amount}</span>
-            </div>
-          </div>
-        ))}
-        {filteredDonations.length === 0 && (
-          <div className="text-center py-8 text-gray-400">
-            <p>No donations found matching "{search}"</p>
-          </div>
-        )}
-      </div>
+      {/* ADD MODAL */}
+      {showAddModal && <AddDonationModal onClose={() => setShowAddModal(false)} refresh={fetchDonations} />}
+    </div>
+  );
+}
 
-      {/* Desktop Table (Visible on Large Screens) */}
-      <div className="hidden sm:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Donor Name</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Recorded By</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filteredDonations.map((d) => (
-              <tr key={d._id} className="hover:bg-gray-50 transition-colors group">
-                <td className="px-6 py-4 font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
-                  {d.donorName}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {new Date(d.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                    {d.addedBy?.name || d.addedBy?.email || "System"}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right font-bold text-emerald-600 text-lg">
-                  ₹ {d.amount}
-                </td>
-              </tr>
-            ))}
-            {filteredDonations.length === 0 && (
-              <tr>
-                <td colSpan="4" className="px-6 py-10 text-center text-gray-500">
-                  No donations found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+// ---------------------------------------------
+// SUB-COMPONENT: Add Donation Modal
+// ---------------------------------------------
+function AddDonationModal({ onClose, refresh }) {
+  const { register, handleSubmit, formState: { errors } } = useForm();
+  const [loading, setLoading] = useState(false);
+
+  const onSubmit = async (data) => {
+    setLoading(true);
+    try {
+      await api.post("/donations", { ...data, amount: Number(data.amount) });
+      refresh();
+      onClose();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to add donation");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl animate-fade-in overflow-hidden">
+        
+        <div className="bg-indigo-600 p-6 text-white text-center">
+          <IndianRupee className="w-10 h-10 mx-auto mb-2 opacity-90" />
+          <h2 className="text-xl font-bold">Record Donation</h2>
+          <p className="text-indigo-100 text-sm">Add amount to festival fund</p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+          
+          <div className="grid grid-cols-2 gap-4">
+             <div className="col-span-2">
+                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Donor Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                  <input {...register("donorName", { required: true })} className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Amit Store" />
+                </div>
+             </div>
+
+             <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Amount (₹)</label>
+                <input type="number" {...register("amount", { required: true })} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700" placeholder="500" />
+             </div>
+
+             <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Receipt No</label>
+                <input {...register("receiptNo")} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Optional" />
+             </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Phone Number</label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-2.5 text-gray-400" size={18} />
+              <input {...register("phone")} className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Optional" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Address</label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-2.5 text-gray-400" size={18} />
+              <input {...register("address")} className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Main Road" />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 py-3 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition">Cancel</button>
+            <button type="submit" disabled={loading} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition flex justify-center items-center gap-2">
+              {loading ? <Loader2 className="animate-spin" /> : "Save Record"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

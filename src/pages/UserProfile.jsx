@@ -96,7 +96,7 @@ export default function UserProfile() {
 
     try {
       await api.put("/auth/change-password", {
-        currentPassword: passwordData.currentPassword,
+        oldPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       });
 

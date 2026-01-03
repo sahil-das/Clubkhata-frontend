@@ -1,191 +1,167 @@
-import {
-  Wallet,
-  IndianRupee,
-  TrendingUp,
-  FileText,
-  BarChart3,
-  PlusCircle,
-  Users,
+import { useState, useEffect } from "react";
+import api from "../api/axios";
+import CreateYearModal from "../components/CreateYearModal";
+import { 
+  Loader2, 
+  Wallet, 
+  TrendingUp, 
+  TrendingDown, 
+  PiggyBank, 
+  Calendar,
+  IndianRupee 
 } from "lucide-react";
-import { useFinance } from "../context/FinanceContext";
-import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
-import { useYear } from "../context/YearContext";
 
 export default function DashboardHome() {
-  const {
-    weeklyTotal,
-    pujaTotal,
-    donationTotal,
-    approvedExpenses,
-    centralFund,
-    openingBalance,
-  } = useFinance();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showCreateYear, setShowCreateYear] = useState(false);
 
-  const { user } = useAuth();
-  const { year } = useYear();
+  const fetchSummary = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/finance/summary");
+      
+      // Auto-trigger modal only if absolutely needed
+      if (res.data.data.yearName === "No Active Year") {
+        setShowCreateYear(true);
+      }
+      
+      setData(res.data.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const totalCollection =
-    (weeklyTotal || 0) +
-    (pujaTotal || 0) +
-    (donationTotal || 0);
+  useEffect(() => {
+    fetchSummary();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-indigo-600">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p className="text-sm font-medium animate-pulse">Loading Financial Data...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+    <div className="space-y-8 pb-10">
+      
+      {/* 🚀 Auto-Popup for First Time Setup */}
+      {showCreateYear && (
+        <CreateYearModal onSuccess={() => {
+          setShowCreateYear(false);
+          fetchSummary();
+        }} />
+      )}
+
+      {/* 1. HEADER SECTION */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">
-            Welcome, {user.role === "admin" ? "Admin" : "Member"}
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">
+            Financial Overview
           </h1>
-          <p className="text-gray-500 text-sm">
-            Saraswati Puja Committee Dashboard
-          </p>
-        </div>
-
-        <div className="text-right text-sm">
-          <p className="text-gray-500">
-            Financial Year: <span className="font-semibold text-gray-800">{year}</span>
-          </p>
-          <p className="text-gray-500 mt-1">
-            Opening Balance: <span className="font-semibold text-green-600">₹ {openingBalance}</span>
+          <p className="text-gray-500 mt-1 flex items-center gap-2 text-sm">
+            <Calendar size={16} />
+            Current Cycle: 
+            <span className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-xs uppercase tracking-wide">
+              {data?.yearName || "Loading..."}
+            </span>
           </p>
         </div>
       </div>
 
-      {/* KPI CARDS (UPDATED LINKS) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Central Balance"
-          value={centralFund}
-          icon={<Wallet />}
-          color="bg-green-600"
-          to="/reports" 
-          subtitle={`Includes ₹${openingBalance} opening`} 
+      {/* 2. MAIN STATS GRID (Responsive) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        
+        {/* Total Income */}
+        <StatCard 
+          title="Total Income" 
+          amount={data?.totalIncome} 
+          icon={<TrendingUp size={24} />} 
+          color="bg-emerald-50 text-emerald-600 border-emerald-100"
         />
 
-        <StatCard
-          title="Total Collection"
-          value={totalCollection}
-          icon={<IndianRupee />}
-          color="bg-indigo-600"
-          to="/collections" 
-          subtitle="This year's revenue"
+        {/* Total Expenses */}
+        <StatCard 
+          title="Total Expenses" 
+          amount={data?.totalExpense} 
+          icon={<TrendingDown size={24} />} 
+          color="bg-rose-50 text-rose-600 border-rose-100"
         />
 
-        <StatCard
-          title="Approved Expenses"
-          value={approvedExpenses}
-          icon={<FileText />}
-          color="bg-red-500"
-          to="/expenses" 
-          subtitle="View details"
+        {/* Current Balance (Highlighted) */}
+        <StatCard 
+          title="Available Balance" 
+          amount={data?.balance} 
+          icon={<Wallet size={24} />} 
+          color="bg-indigo-600 text-white shadow-indigo-200 shadow-xl ring-2 ring-indigo-600 ring-offset-2"
+          isPrimary
         />
 
-        <StatCard
-          title="Donations"
-          value={donationTotal}
-          icon={<TrendingUp />}
-          color="bg-yellow-500"
-          to="/donations" 
-          subtitle="Member & outside"
+        {/* Opening Balance */}
+        <StatCard 
+          title="Opening Balance" 
+          amount={data?.openingBalance} 
+          icon={<PiggyBank size={24} />} 
+          color="bg-gray-50 text-gray-600 border-gray-200"
         />
       </div>
 
-      {/* QUICK ACTIONS (UPDATED LINKS) */}
-      {user.role === "admin" && (
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="font-semibold mb-4">
-            Quick Actions
-          </h3>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <QuickAction
-              label="Add Weekly"
-              icon={<PlusCircle />}
-              to="/weekly" 
-            />
-
-            <QuickAction
-              label="Puja Contribution"
-              icon={<Users />}
-              to="/puja-contributions" 
-            />
-
-            <QuickAction
-              label="Add Donation"
-              icon={<TrendingUp />}
-              to="/donations" 
-            />
-
-            <QuickAction
-              label="Add Expense"
-              icon={<FileText />}
-              to="/expenses" 
-            />
-
-            <QuickAction
-              label="Collections"
-              icon={<BarChart3 />}
-              to="/collections" 
-            />
-          </div>
+      {/* 3. BREAKDOWN SECTION */}
+      <div>
+        <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+          <IndianRupee size={20} className="text-indigo-500"/> Income Breakdown
+        </h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+           <BreakdownCard label="Subscriptions" amount={data?.breakdown?.subscriptions} />
+           <BreakdownCard label="Donations" amount={data?.breakdown?.donations} />
+           <BreakdownCard label="Member Fees" amount={data?.breakdown?.memberFees} />
         </div>
-      )}
-
-      {/* REPORTS SHORTCUT (UPDATED LINK) */}
-      {user.role === "admin" && (
-        <Link
-          to="/reports" 
-          className="bg-white rounded-xl shadow p-6 flex items-center gap-4
-                     hover:bg-indigo-50 transition"
-        >
-          <div className="bg-indigo-600 text-white p-3 rounded-lg">
-            <BarChart3 />
-          </div>
-          <div>
-            <h3 className="font-semibold">
-              Financial Reports
-            </h3>
-            <p className="text-sm text-gray-500">
-              Source-wise collection & expenses
-            </p>
-          </div>
-        </Link>
-      )}
+      </div>
     </div>
   );
 }
 
-/* ================= COMPONENTS (Unchanged) ================= */
-
-function StatCard({ title, value, icon, color, to, subtitle }) {
+// 🎨 SUB-COMPONENT: Modern Stat Card
+function StatCard({ title, amount, icon, color, isPrimary }) {
   return (
-    <Link
-      to={to}
-      className="bg-white rounded-xl shadow p-5 flex items-center gap-4
-                 hover:shadow-lg hover:scale-[1.02] transition cursor-pointer"
-    >
-      <div className={`${color} text-white p-3 rounded-lg`}>{icon}</div>
-      <div>
-        <p className="text-sm text-gray-500">{title}</p>
-        <h3 className="text-xl font-bold">₹ {value}</h3>
-        {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+    <div className={`
+      relative overflow-hidden rounded-2xl p-6 transition-all duration-300
+      ${isPrimary ? color : `${color} bg-opacity-50 border`}
+      hover:-translate-y-1
+    `}>
+      <div className="flex justify-between items-start">
+        <div>
+          <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isPrimary ? 'text-indigo-100' : 'text-gray-500'}`}>
+            {title}
+          </p>
+          <h2 className="text-3xl font-bold font-mono tracking-tight">
+            ₹{amount?.toLocaleString() || "0"}
+          </h2>
+        </div>
+        <div className={`p-3 rounded-xl ${isPrimary ? 'bg-white/20 text-white' : 'bg-white shadow-sm'}`}>
+          {icon}
+        </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
-function QuickAction({ label, icon, to }) {
+// 🎨 SUB-COMPONENT: Simple Breakdown Card
+function BreakdownCard({ label, amount }) {
   return (
-    <Link
-      to={to}
-      className="flex flex-col items-center justify-center gap-2
-                 border rounded-lg p-4 hover:bg-indigo-50 transition
-                 text-gray-700 hover:text-indigo-600"
-    >
-      <div className="text-indigo-600">{icon}</div>
-      <span className="text-sm font-medium text-center">{label}</span>
-    </Link>
+    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between hover:border-indigo-200 transition-colors">
+      <span className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">
+        {label}
+      </span>
+      <span className="text-2xl font-bold text-gray-800">
+        ₹{amount?.toLocaleString() || "0"}
+      </span>
+    </div>
   );
 }
