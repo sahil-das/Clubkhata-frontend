@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { exportWeeklyAllMembersPDF } from "../utils/exportWeeklyAllMembersPDF";
-
 export default function WeeklyContributions() {
   const { user } = useAuth();
   const { weeklyTotal, fetchCentralFund } = useFinance();

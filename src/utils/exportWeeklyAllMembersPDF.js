@@ -7,31 +7,31 @@ export function exportWeeklyAllMembersPDF({
   cycle = { name: "Current Cycle", totalWeeks: 0, weeklyAmount: 0 },
 }) {
   const doc = new jsPDF();
-  const totalWeeks = Number(cycle.totalWeeks) || 0;
+
+  const formatCurrency = (amount) => `Rs. ${Number(amount).toLocaleString('en-IN')}`;
+  const totalWeeks = Number(cycle.totalWeeks) || 52; // Default to 52 if missing
   const weekAmount = Number(cycle.weeklyAmount) || 0;
   const totalExpectedPerMember = totalWeeks * weekAmount;
 
-  // --- CALCULATE GLOBAL STATS ---
+  // --- 1. CALCULATE GLOBAL STATS ---
   let globalTotalPaid = 0;
   let globalTotalExpected = members.length * totalExpectedPerMember;
   
   const memberRows = members.map((member) => {
-    // Handle different data structures (array of weeks vs payments array)
     const paidWeeksCount = Array.isArray(member.weeks) 
       ? member.weeks.filter((w) => w.paid).length
       : (member.payments?.length || 0);
 
     const totalPaid = paidWeeksCount * weekAmount;
     const dueAmount = totalExpectedPerMember - totalPaid;
-    
     globalTotalPaid += totalPaid;
 
     return [
       member.name,
       `${paidWeeksCount} / ${totalWeeks}`,
-      `₹${totalPaid}`,
-      `₹${dueAmount}`,
-      dueAmount === 0 ? "Completed" : "Pending"
+      formatCurrency(totalPaid),
+      formatCurrency(dueAmount),
+      dueAmount === 0 ? "All Paid" : "Pending"
     ];
   });
 
@@ -39,150 +39,157 @@ export function exportWeeklyAllMembersPDF({
     ? ((globalTotalPaid / globalTotalExpected) * 100).toFixed(1) 
     : "0.0";
 
-  let y = 20;
+  let y = 0;
 
-  // ================= TITLE SECTION =================
-  doc.setFontSize(20);
-  doc.setTextColor(40, 40, 40);
-  doc.text(clubName, 14, y);
-  y += 8;
+  // ================= 2. HEADER & SUMMARY (Same as before) =================
+  doc.setFillColor(63, 81, 181); 
+  doc.rect(0, 0, 210, 40, "F"); 
 
-  doc.setFontSize(12);
-  doc.setTextColor(100, 100, 100);
-  doc.text("Weekly Contribution Report", 14, y);
-  y += 6;
+  doc.setFontSize(22);
+  doc.setTextColor(255, 255, 255);
+  doc.text(clubName.toUpperCase(), 14, 20);
+
+  doc.setFontSize(11);
+  doc.setTextColor(220, 220, 255);
+  doc.text("Annual Contribution Matrix", 14, 30); // Changed Title
 
   doc.setFontSize(10);
-  doc.text(`Cycle: ${cycle.name} | Generated: ${new Date().toLocaleDateString()}`, 14, y);
-  y += 10;
+  doc.text(`Cycle: ${cycle.name}`, 195, 20, { align: "right" });
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, 195, 30, { align: "right" });
 
-  // ================= SUMMARY CARD =================
-  // Draw a light gray box for stats
-  doc.setFillColor(245, 245, 245); 
-  doc.roundedRect(14, y, 180, 25, 3, 3, "F");
-  
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  
-  // Col 1: Total Members
-  doc.text("Total Members", 20, y + 8);
+  y = 55;
+
+  // Summary Card
+  doc.setDrawColor(220, 220, 220);
+  doc.setFillColor(250, 250, 252);
+  doc.roundedRect(14, y - 10, 182, 30, 3, 3, "FD");
+
+  const col1 = 24, col2 = 85, col3 = 145;
+  doc.setFontSize(9); doc.setTextColor(100); doc.setFont(undefined, 'bold');
+  doc.text("TOTAL MEMBERS", col1, y);
+  doc.text("TOTAL WEEKS", col2, y);
+  doc.text("PROGRESS", col3, y);
+
+  doc.setFontSize(12); doc.setTextColor(40); doc.setFont(undefined, 'normal');
+  doc.text(`${members.length}`, col1, y + 8);
+  doc.text(`${totalWeeks}`, col2, y + 8);
+  // Ensure we pass RGB as separate args to setTextColor
+  const collectionColor = collectionRate === "100.0" ? [46, 125, 50] : [198, 40, 40];
+  doc.setTextColor(...collectionColor);
+  doc.text(`${collectionRate}% Collected`, col3, y + 8);
+
+  y += 35;
+
+  // ================= 3. OVERVIEW TABLE =================
   doc.setFontSize(14);
-  doc.text(String(members.length), 20, y + 18);
-  
-  // Col 2: Weeks & Rate
-  doc.setFontSize(11);
-  doc.text("Total Weeks", 70, y + 8);
-  doc.setFontSize(14);
-  doc.text(`${totalWeeks} (@ ₹${weekAmount})`, 70, y + 18);
-
-  // Col 3: Collection Status
-  doc.setFontSize(11);
-  doc.text("Collection Progress", 130, y + 8);
-  doc.setFontSize(14);
-  
-  // Color code the financial status
-  if (globalTotalPaid === globalTotalExpected) doc.setTextColor(0, 150, 0); // Green
-  else doc.setTextColor(200, 0, 0); // Red (or default black)
-
-  doc.text(`₹${globalTotalPaid} / ₹${globalTotalExpected} (${collectionRate}%)`, 130, y + 18);
-  
-  y += 35; // Move down after box
-
-  // ================= TABLE 1: MEMBER OVERVIEW =================
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  doc.text("1. Member Overview", 14, y);
-  y += 4;
+  doc.setTextColor(0);
+  doc.setFont(undefined, 'bold');
+  doc.text("Member Summary", 14, y);
+  y += 5;
 
   autoTable(doc, {
     startY: y,
-    head: [["Member Name", "Progress (Wks)", "Paid", "Due", "Status"]],
+    head: [["Name", "Progress", "Paid", "Due", "Status"]],
     body: memberRows,
-    theme: "striped",
-    headStyles: { fillColor: [63, 81, 181] }, // Indigo header
+    theme: "grid",
+    headStyles: { fillColor: [50, 50, 50], textColor: 255, fontStyle: 'bold' },
     styles: { fontSize: 10, cellPadding: 3 },
     columnStyles: {
-      2: { fontStyle: "bold", textColor: [0, 128, 0] }, // Paid column green
-      3: { textColor: [200, 0, 0] } // Due column red
+      2: { textColor: [46, 125, 50], halign: 'right' },
+      3: { textColor: [198, 40, 40], halign: 'right' },
+      4: { halign: 'center', fontStyle: 'bold' }
     }
   });
 
   y = doc.lastAutoTable.finalY + 15;
 
-  // ================= TABLE 2: DETAILED BREAKDOWN =================
-  // Only add if we have space, else new page
-  if (y > 250) {
-    doc.addPage();
-    y = 20;
-  }
+  // ================= 4. COMPACT MATRIX GRID (Best for 50 Weeks) =================
+  if (y > 250) { doc.addPage(); y = 20; }
 
-  doc.setFontSize(12);
-  doc.text("2. Payment Details per Member", 14, y);
-  y += 6;
+  doc.setFontSize(14);
+  doc.setTextColor(0);
+  doc.text("Detailed Weekly Matrix", 14, y);
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text("(Green = Paid, White = Pending)", 14, y + 6);
+  y += 12;
 
+  // Iterate over each member to create a Grid
   members.forEach((member, index) => {
-    // Check page break
-    if (y > 250) {
-      doc.addPage();
-      y = 20;
-    }
+    // Check if we need a new page
+    if (y > 250) { doc.addPage(); y = 20; }
 
-    // Normalize paid data
-    let paidWeeksData = [];
-    if (Array.isArray(member.weeks)) {
-        paidWeeksData = member.weeks.filter(w => w.paid).map(w => ({
-            week: w.week,
-            date: new Date(w.paidAt).toLocaleDateString()
-        }));
-    } else if (Array.isArray(member.payments)) {
-        paidWeeksData = member.payments.map(p => ({
-            week: p.week,
-            date: p.date ? new Date(p.date).toLocaleDateString() : "-"
-        }));
-    }
-    
-    // Sort by week number
-    paidWeeksData.sort((a, b) => a.week - b.week);
-
-    // Section Header for Member
+    // 1. Member Header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(14, y, 182, 8, "F"); // Light gray header bg
     doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`${index + 1}. ${member.name}`, 14, y);
-    
-    const paidCount = paidWeeksData.length;
-    const paidAmt = paidCount * weekAmount;
-    
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Paid: ₹${paidAmt}  |  Pending: ₹${totalExpectedPerMember - paidAmt}`, 14, y + 5);
-    
+    doc.setTextColor(0);
+    doc.setFont(undefined, 'bold');
+    doc.text(`${index + 1}. ${member.name}`, 18, y + 5.5);
     y += 8;
 
-    // Mini Table for weeks
-    if (paidWeeksData.length > 0) {
-        autoTable(doc, {
-            startY: y,
-            head: [["Week No.", "Payment Date", "Amount"]],
-            body: paidWeeksData.map(p => [
-                `Week ${p.week}`, 
-                p.date, 
-                `₹${weekAmount}`
-            ]),
-            theme: "grid",
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [220, 220, 220], textColor: 50 },
-            margin: { left: 14, right: 100 } // Keep table compact width
+    // 2. Build the Grid Data (Rows of 10 weeks)
+    const paidWeekNumbers = new Set(
+        Array.isArray(member.weeks) 
+        ? member.weeks.filter(w => w.paid).map(w => w.week) 
+        : member.payments?.map(p => p.week) || []
+    );
+
+    const gridRows = [];
+    let currentRow = [];
+    
+    // Create rows of 10 columns (e.g. Weeks 1-10, 11-20...)
+    for (let w = 1; w <= totalWeeks; w++) {
+        currentRow.push({
+            content: String(w),
+            paid: paidWeekNumbers.has(w)
         });
-        y = doc.lastAutoTable.finalY + 10;
-    } else {
-        doc.setFontSize(9);
-        doc.setTextColor(150, 0, 0);
-        doc.text("No payments recorded yet.", 14, y + 2);
-        y += 10;
+        if (currentRow.length === 10 || w === totalWeeks) {
+            // Fill remaining empty cells if last row is incomplete
+            while(currentRow.length < 10) currentRow.push({ content: "", paid: false });
+            gridRows.push(currentRow);
+            currentRow = [];
+        }
     }
+
+    // 3. Draw the Grid using autoTable
+    autoTable(doc, {
+        startY: y,
+        body: gridRows.map(row => row.map(cell => cell.content)), // Just numbers
+        theme: 'grid',
+        styles: { 
+            fontSize: 9, 
+            halign: 'center', 
+            valign: 'middle', 
+            cellPadding: 1,
+            lineWidth: 0.1,
+            lineColor: [200, 200, 200]
+        },
+        // IMPORTANT: Color the cells based on status
+        didParseCell: (data) => {
+            if (data.section === 'body') {
+                const rowIndex = data.row.index;
+                const colIndex = data.column.index;
+                const cellData = gridRows[rowIndex][colIndex];
+                
+                if (cellData && cellData.paid) {
+                    // Paid = Green Background
+                    data.cell.styles.fillColor = [220, 255, 220]; 
+                    data.cell.styles.textColor = [0, 100, 0];
+                    data.cell.styles.fontStyle = 'bold';
+                } else if (cellData && cellData.content !== "") {
+                    // Unpaid = Default White
+                    data.cell.styles.textColor = [150, 150, 150];
+                }
+            }
+        },
+        margin: { left: 14, right: 14 },
+    });
+
+    y = doc.lastAutoTable.finalY + 8; // Space between members
   });
 
-  // Footer
+  // Footer Page Numbers
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -191,5 +198,5 @@ export function exportWeeklyAllMembersPDF({
     doc.text(`Page ${i} of ${pageCount}`, 190, 285, { align: "right" });
   }
 
-  doc.save("Weekly_Contribution_Report.pdf");
+  doc.save("Weekly_Matrix_Report.pdf");
 }

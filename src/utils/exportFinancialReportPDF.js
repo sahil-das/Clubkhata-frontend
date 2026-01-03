@@ -4,99 +4,184 @@ import autoTable from "jspdf-autotable";
 export function exportFinancialReportPDF({
   year,
   openingBalance,
-  incomeSources, // { weekly, puja, donation }
+  incomeSources,
   totalIncome,
   totalExpense,
   netBalance,
+  details = { expenses: [], donations: [], puja: [] } // Defaults
 }) {
   const doc = new jsPDF();
-  let y = 20;
+  const formatCurrency = (amount) => `Rs. ${Number(amount).toLocaleString('en-IN')}`;
 
-  // ================= HEADER =================
-  doc.setFontSize(22);
-  doc.setTextColor(40, 40, 40);
-  doc.text("Saraswati Club", 14, y);
-  y += 8;
+  let y = 0;
 
-  doc.setFontSize(14);
-  doc.setTextColor(100, 100, 100);
-  doc.text("Annual Financial Report", 14, y);
-  y += 6;
+  // ================= 1. HEADER (Page 1) =================
+  doc.setFillColor(63, 81, 181);
+  doc.rect(0, 0, 210, 45, "F");
+
+  doc.setFontSize(24);
+  doc.setTextColor(255, 255, 255);
+  doc.text("SARASWATI CLUB", 14, 20);
+
+  doc.setFontSize(12);
+  doc.setTextColor(220, 220, 255);
+  doc.text("Annual Financial Statement", 14, 32);
 
   doc.setFontSize(10);
-  doc.text(`Financial Year: ${year}`, 14, y);
-  y += 5;
-  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, y);
-  y += 15;
+  doc.text(`Financial Year: ${year}`, 195, 20, { align: "right" });
+  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 195, 32, { align: "right" });
 
-  // ================= SUMMARY CARD =================
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(14, y, 180, 40, 3, 3, "F");
-  
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  
-  // Row 1: Opening & Income
-  doc.text("Opening Balance", 20, y + 10);
-  doc.setFontSize(14);
-  doc.text(`Rs ${openingBalance}`, 20, y + 18);
-  
-  doc.setFontSize(11);
-  doc.text("Total Income", 80, y + 10);
-  doc.setFontSize(14);
-  doc.setTextColor(16, 185, 129); // Green
-  doc.text(`+ Rs ${totalIncome}`, 80, y + 18);
+  y = 60;
 
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  doc.text("Total Expenses", 140, y + 10);
-  doc.setFontSize(14);
-  doc.setTextColor(239, 68, 68); // Red
-  doc.text(`- Rs ${totalExpense}`, 140, y + 18);
+  // ================= 2. EXECUTIVE SUMMARY =================
+  doc.setDrawColor(220, 220, 220);
+  doc.setFillColor(250, 250, 252);
+  doc.roundedRect(14, y - 10, 182, 45, 3, 3, "FD");
 
-  // Row 2: Net Balance
-  y += 28;
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  doc.text("NET CENTRAL FUND BALANCE", 20, y);
-  doc.setFontSize(16);
-  doc.setTextColor(79, 70, 229); // Indigo
-  doc.text(`Rs ${netBalance}`, 80, y);
+  const col1 = 24, col2 = 80, col3 = 140;
+  doc.setFontSize(9); doc.setTextColor(100); doc.setFont(undefined, 'bold');
+  doc.text("OPENING BALANCE", col1, y);
+  doc.text("TOTAL INCOME", col2, y);
+  doc.text("TOTAL EXPENSES", col3, y);
 
-  y += 25;
+  doc.setFontSize(14); doc.setFont(undefined, 'normal');
+  doc.setTextColor(63, 81, 181); doc.text(formatCurrency(openingBalance), col1, y + 8);
+  doc.setTextColor(46, 125, 50); doc.text(`+ ${formatCurrency(totalIncome)}`, col2, y + 8);
+  doc.setTextColor(198, 40, 40); doc.text(`- ${formatCurrency(totalExpense)}`, col3, y + 8);
 
-  // ================= DETAILS TABLE =================
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  doc.text("Detailed Breakdown", 14, y);
+  doc.setDrawColor(200); doc.line(24, y + 16, 186, y + 16);
+
+  y += 26;
+  doc.setFontSize(10); doc.setTextColor(60); doc.text("NET CLOSING BALANCE (Central Fund)", 24, y);
+  doc.setFontSize(16); doc.setTextColor(0); doc.setFont(undefined, 'bold');
+  doc.text(formatCurrency(netBalance), 140, y);
+
+  y += 30;
+
+  // ================= 3. INCOME BREAKDOWN (Summary) =================
+  doc.setFontSize(14); doc.setTextColor(0); doc.setFont(undefined, 'bold');
+  doc.text("Income & Expense Summary", 14, y);
   y += 5;
 
   autoTable(doc, {
     startY: y,
     head: [["Category", "Description", "Amount", "Type"]],
     body: [
-      ["Opening", "Brought forward from previous year", `Rs ${openingBalance}`, "Asset"],
-      ["Income", "Weekly Contributions", `Rs ${incomeSources.weekly}`, "Credit"],
-      ["Income", "Puja Contributions", `Rs ${incomeSources.puja}`, "Credit"],
-      ["Income", "Donations", `Rs ${incomeSources.donation}`, "Credit"],
-      ["Expense", "Approved Expenses", `Rs ${totalExpense}`, "Debit"],
-      // Divider
-      [{ content: "Closing Balance", colSpan: 2, styles: { fontStyle: 'bold', halign: 'right' } }, { content: `Rs ${netBalance}`, styles: { fontStyle: 'bold', textColor: [0, 128, 0] } }, "-"],
+      ["Opening", "Brought forward", formatCurrency(openingBalance), "Asset"],
+      ["Income", "Weekly Contributions", formatCurrency(incomeSources.weekly), "Credit"],
+      ["Income", "Puja Contributions", formatCurrency(incomeSources.puja), "Credit"],
+      ["Income", "Donations & Gifts", formatCurrency(incomeSources.donation), "Credit"],
+      ["Expense", "All Expenses", formatCurrency(totalExpense), "Debit"],
+      [{ content: "Net Balance", colSpan: 2, styles: { fontStyle: 'bold', halign: 'right' } }, { content: formatCurrency(netBalance), styles: { fontStyle: 'bold' } }, "-"]
     ],
-    theme: "striped",
-    headStyles: { fillColor: [63, 81, 181] },
-    columnStyles: {
-      2: { fontStyle: "bold", halign: "right" },
-      3: { halign: "center" }
+    theme: "grid",
+    headStyles: { fillColor: [50, 50, 50], textColor: 255 },
+    columnStyles: { 2: { halign: "right", fontStyle: "bold" }, 3: { halign: "center" } },
+    didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 3) {
+            if (data.cell.raw === "Credit") data.cell.styles.textColor = [46, 125, 50];
+            else if (data.cell.raw === "Debit") data.cell.styles.textColor = [198, 40, 40];
+            else data.cell.styles.textColor = [63, 81, 181];
+        }
     }
   });
 
-  // ================= FOOTER =================
-  const finalY = doc.lastAutoTable.finalY + 20;
-  doc.setFontSize(10);
-  doc.setTextColor(150);
-  doc.text("Treasurer Signature", 150, finalY);
-  doc.line(150, finalY - 5, 190, finalY - 5);
+  y = doc.lastAutoTable.finalY + 20;
+
+  // ================= 4. DETAILED EXPENSES =================
+  if (y > 230) { doc.addPage(); y = 20; }
+  
+  doc.setFontSize(14); doc.setTextColor(198, 40, 40); doc.text("Detailed Expenses", 14, y);
+  y += 5;
+
+  // Sort expenses by date
+  const sortedExpenses = details.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (sortedExpenses.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [["Date", "Title / Description", "Added By", "Amount"]],
+        body: sortedExpenses.map(e => [
+            new Date(e.date).toLocaleDateString(),
+            e.title,
+            e.addedBy?.name || "Admin",
+            formatCurrency(e.amount)
+        ]),
+        theme: "striped",
+        headStyles: { fillColor: [198, 40, 40] }, // Red header for expenses
+        columnStyles: { 3: { halign: "right", fontStyle: "bold" } }
+      });
+      y = doc.lastAutoTable.finalY + 15;
+  } else {
+      doc.setFontSize(10); doc.setTextColor(100); doc.text("No expenses recorded.", 14, y + 10); y+=20;
+  }
+
+  // ================= 5. DETAILED DONATIONS =================
+  if (y > 230) { doc.addPage(); y = 20; }
+  
+  doc.setFontSize(14); doc.setTextColor(46, 125, 50); doc.text("Donation List", 14, y);
+  y += 5;
+
+  if (details.donations.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [["Date", "Donor Name", "Amount"]],
+        body: details.donations.map(d => [
+            new Date(d.createdAt).toLocaleDateString(),
+            d.donorName,
+            formatCurrency(d.amount)
+        ]),
+        theme: "striped",
+        headStyles: { fillColor: [46, 125, 50] }, // Green header
+        columnStyles: { 2: { halign: "right", fontStyle: "bold" } }
+      });
+      y = doc.lastAutoTable.finalY + 15;
+  } else {
+      doc.setFontSize(10); doc.setTextColor(100); doc.text("No donations recorded.", 14, y + 10); y+=20;
+  }
+
+  // ================= 6. PUJA CONTRIBUTIONS =================
+  if (y > 230) { doc.addPage(); y = 20; }
+  
+  doc.setFontSize(14); doc.setTextColor(46, 125, 50); doc.text("Puja Contributions", 14, y);
+  y += 5;
+
+  if (details.puja.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [["Date", "Member Name", "Amount"]],
+        body: details.puja.map(p => [
+            new Date(p.createdAt).toLocaleDateString(),
+            p.member?.name || "Unknown",
+            formatCurrency(p.amount)
+        ]),
+        theme: "striped",
+        headStyles: { fillColor: [76, 175, 80] }, // Lighter Green
+        columnStyles: { 2: { halign: "right", fontStyle: "bold" } }
+      });
+      y = doc.lastAutoTable.finalY + 20;
+  } else {
+      doc.setFontSize(10); doc.setTextColor(100); doc.text("No puja contributions recorded.", 14, y + 10); y+=20;
+  }
+
+  // ================= 7. SIGNATURE (Always at bottom of last page) =================
+  if (y > 250) { doc.addPage(); y = 20; }
+  
+  const signatureY = y + 20;
+  doc.setDrawColor(150); doc.setLineWidth(0.5);
+  doc.line(140, signatureY, 190, signatureY);
+  doc.setFontSize(10); doc.setTextColor(100); doc.setFont(undefined, 'normal');
+  doc.text("Treasurer Signature", 165, signatureY + 5, { align: "center" });
+  doc.text("Saraswati Club Committee", 165, signatureY + 10, { align: "center" });
+
+  // Page Numbers
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(`Page ${i} of ${pageCount}`, 190, 285, { align: "right" });
+  }
 
   doc.save(`Financial_Report_${year}.pdf`);
 }
