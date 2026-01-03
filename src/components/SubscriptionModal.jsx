@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios";
 import { 
-  X, Loader2, CheckCircle, IndianRupee, AlertCircle, ChevronDown, ChevronUp, Plus
+  X, Loader2, CheckCircle, IndianRupee, AlertCircle, ChevronDown, ChevronUp, Plus, History, Trash2
 } from "lucide-react";
 
 export default function SubscriptionModal({ memberId, onClose, canEdit }) {
@@ -11,7 +11,7 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
   
   // States for Weekly Grid
   const [processingId, setProcessingId] = useState(null);
-  const [isGridExpanded, setIsGridExpanded] = useState(false); // Collapsible State
+  const [isGridExpanded, setIsGridExpanded] = useState(false); // Collapsible
 
   // States for Festival Chanda
   const [chandaAmount, setChandaAmount] = useState("");
@@ -26,9 +26,18 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
       setData(subData);
 
       // 2. Fetch Festival Chanda History (One-Time)
-      if (subData?.memberUserId) {
-         const feeRes = await api.get(`/member-fees/member/${subData.memberUserId}`);
-         setChandaHistory(feeRes.data.data.records || []);
+      // We need the User ID from the subscription response to query fees
+      if (subData?.subscription?.member) {
+         // Note: If your backend links Subscription to Membership ID, we need to resolve User ID first.
+         // Assuming subData.subscription.member is the Membership object which contains .user
+         // If not, we might need to adjust based on your exact API response structure.
+         // A safe bet is to filter the global fee list if a specific endpoint doesn't exist yet.
+         const feeRes = await api.get("/member-fees");
+         // Filter client-side for this user (Not ideal for huge datasets but works for now)
+         const userFees = feeRes.data.data.filter(f => 
+             f.user?._id === subData.memberUserId || f.user === subData.memberUserId
+         ); 
+         setChandaHistory(userFees);
       }
 
     } catch (err) {
@@ -44,7 +53,7 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
     fetchData();
   }, [memberId]);
 
-  /* ================= TOGGLE WEEKLY/MONTHLY ================= */
+  /* ================= HANDLER: TOGGLE WEEKLY/MONTHLY ================= */
   const handleToggle = async (installmentNumber) => {
     if (!canEdit || processingId) return;
 
@@ -66,18 +75,17 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
     }
   };
 
-  /* ================= ADD FESTIVAL CHANDA ================= */
+  /* ================= HANDLER: ADD FESTIVAL CHANDA ================= */
   const handleAddChanda = async (e) => {
     e.preventDefault();
     if (!chandaAmount || !canEdit) return;
 
     setAddingChanda(true);
     try {
-      // ✅ Now data.memberUserId exists thanks to backend fix
       await api.post("/member-fees", {
-        userId: data.memberUserId, 
+        userId: data.memberUserId, // Ensure your backend sends this in the GET /subscriptions/member/:id response
         amount: Number(chandaAmount),
-        notes: "Quick Collect"
+        notes: "Added via Quick Collect"
       });
       
       setChandaAmount("");
@@ -90,14 +98,14 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
     }
   };
 
-  /* ================= HELPERS ================= */
+  /* ================= HELPER: GET LABEL ================= */
   const getLabel = (num) => {
     if (data?.rules?.frequency === 'monthly') {
       const date = new Date();
       date.setMonth(num - 1);
       return date.toLocaleString('default', { month: 'short' });
     }
-    return num;
+    return num; // Just return the number for Weekly
   };
 
   if (!memberId) return null;
@@ -113,7 +121,7 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
               <IndianRupee className="text-yellow-400"/> {data?.memberName || "Loading..."}
             </h2>
             <p className="text-indigo-200 text-xs mt-1">
-               Managing collections for <span className="font-bold text-white">{data?.rules?.name || "Active Year"}</span>
+               Managing collections for <span className="font-bold text-white">{data?.rules?.name}</span>
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
@@ -128,7 +136,7 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
         ) : (
           <div className="flex-1 overflow-y-auto bg-gray-50">
             
-            {/* === 1. RECURRING SUBSCRIPTIONS (Collapsible) === */}
+            {/* === SECTION 1: RECURRING SUBSCRIPTIONS === */}
             <div className="bg-white p-5 border-b border-gray-100">
                <div className="flex justify-between items-center mb-4">
                   <div>
@@ -137,7 +145,7 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
                          {data?.rules?.frequency === 'monthly' ? 'Monthly' : 'Weekly'} Subscription
                       </h3>
                       <p className="text-xs text-gray-500">
-                         Paid: <span className="font-bold text-green-600">₹{data?.subscription?.totalPaid}</span> 
+                         Total Paid: <span className="font-bold text-green-600">₹{data?.subscription?.totalPaid}</span> 
                          <span className="mx-1">•</span>
                          Due: <span className="font-bold text-red-500">₹{data?.subscription?.totalDue}</span>
                       </p>
@@ -146,27 +154,27 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
                     onClick={() => setIsGridExpanded(!isGridExpanded)}
                     className="text-xs font-bold text-indigo-600 flex items-center gap-1 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition"
                   >
-                    {isGridExpanded ? "Collapse" : "Expand Grid"}
+                    {isGridExpanded ? "Collapse" : "Expand View"}
                     {isGridExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
                   </button>
                </div>
 
-               {/* Collapsed State: Progress Bar */}
+               {/* COMPACT VIEW (Progress Bar) */}
                {!isGridExpanded && (
-                  <div className="space-y-2 cursor-pointer" onClick={() => setIsGridExpanded(true)}>
-                      <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                  <div className="space-y-2">
+                      <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
                           <div 
                              className="bg-indigo-500 h-full rounded-full transition-all duration-500"
-                             style={{ width: `${(data?.subscription?.totalPaid / (data?.subscription?.totalPaid + data?.subscription?.totalDue || 1)) * 100}%` }}
+                             style={{ width: `${(data?.subscription?.totalPaid / (data?.subscription?.totalPaid + data?.subscription?.totalDue)) * 100}%` }}
                           ></div>
                       </div>
-                      <p className="text-[10px] text-center text-gray-400">
-                         Tap to view all installments.
+                      <p className="text-xs text-center text-gray-400">
+                         Expand to manage individual installments.
                       </p>
                   </div>
                )}
 
-               {/* Expanded State: The Grid */}
+               {/* EXPANDED GRID VIEW */}
                {isGridExpanded && (
                   <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 animate-in fade-in slide-in-from-top-2">
                     {data?.subscription?.installments.map((inst) => (
@@ -190,7 +198,7 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
                )}
             </div>
 
-            {/* === 2. FESTIVAL CHANDA (One-Time) === */}
+            {/* === SECTION 2: FESTIVAL CHANDA (ONE-TIME) === */}
             <div className="p-5">
                <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
                   <IndianRupee size={18} className="text-emerald-600"/> Festival Chanda
@@ -208,8 +216,10 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
                                 <p className="font-bold text-gray-700 text-sm">₹ {fee.amount}</p>
                                 <p className="text-[10px] text-gray-400">{new Date(fee.createdAt).toLocaleDateString()}</p>
                              </div>
-                             <div className="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500">
-                                {fee.notes || "Chanda"}
+                             <div className="flex items-center gap-2">
+                                <span className="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500">
+                                   {fee.notes || "Chanda"}
+                                </span>
                              </div>
                           </div>
                        ))
@@ -228,7 +238,7 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
                         <input 
                            type="number" 
                            placeholder="Add Amount..." 
-                           className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none transition"
+                           className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none"
                            value={chandaAmount}
                            onChange={(e) => setChandaAmount(e.target.value)}
                         />
@@ -236,7 +246,7 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
                      <button 
                         type="submit" 
                         disabled={addingChanda || !chandaAmount}
-                        className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-emerald-100 transition"
+                        className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-emerald-100"
                      >
                         {addingChanda ? <Loader2 className="animate-spin" size={18}/> : <Plus size={20}/>}
                         Add
@@ -244,7 +254,7 @@ export default function SubscriptionModal({ memberId, onClose, canEdit }) {
                   </form>
                )}
             </div>
-            
+
             {!canEdit && (
                <div className="mx-5 mb-5 bg-orange-50 text-orange-600 text-xs p-3 rounded-lg flex items-center justify-center gap-2 font-bold">
                   <AlertCircle size={14}/> View Only Mode

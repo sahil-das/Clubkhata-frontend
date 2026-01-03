@@ -8,23 +8,12 @@ import {
 import SubscriptionModal from "../components/SubscriptionModal";
 
 export default function Members() {
-  const { activeClub, user } = useAuth(); 
+  const { activeClub, user } = useAuth(); // 👈 Added 'user' to check ID
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState(null);
-  const [isYearClosed, setIsYearClosed] = useState(false);
-
-  // Fetch Summary to check if year is closed
-  const fetchSummary = async () => {
-    try {
-      const res = await api.get("/finance/summary");
-      setIsYearClosed(res.data.data?.yearName === "No Active Year");
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   // Fetch Members on Load
   const fetchMembers = async () => {
@@ -40,7 +29,6 @@ export default function Members() {
 
   useEffect(() => {
     fetchMembers();
-    fetchSummary();
   }, []);
 
   // Function to handle role toggle
@@ -149,15 +137,13 @@ export default function Members() {
               {activeClub?.role === "admin" && (
                 <div className="mt-2">
                   
-                  {/* 1. COLLECT CHANDA (Full Width) - Hidden if year is closed */}
-                  {!isYearClosed && (
-                    <button 
-                      onClick={() => setSelectedMemberId(member.membershipId)}
-                      className="w-full mb-3 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-md shadow-indigo-100"
-                    >
-                      <CreditCard size={18} /> Collect Chanda
-                    </button>
-                  )}
+                  {/* 1. COLLECT CHANDA (Full Width) */}
+                  <button 
+                    onClick={() => setSelectedMemberId(member.membershipId)}
+                    className="w-full mb-3 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-md shadow-indigo-100"
+                  >
+                    <CreditCard size={18} /> Collect Chanda
+                  </button>
 
                   {/* 2. ADMIN ACTIONS ROW */}
                   <div className="flex gap-2 pt-3 border-t border-gray-100">
@@ -200,12 +186,11 @@ export default function Members() {
       {/* ADD MEMBER MODAL */}
       {showAddModal && <AddMemberModal onClose={() => setShowAddModal(false)} refresh={fetchMembers} />}
       
-      {/* ✅ FIXED: Passed 'canEdit' prop correctly */}
+      {/* SUBSCRIPTION MODAL */}
       {selectedMemberId && (
         <SubscriptionModal 
           memberId={selectedMemberId} 
           onClose={() => setSelectedMemberId(null)} 
-          canEdit={activeClub?.role === "admin"}
         />
       )}
     </div>
