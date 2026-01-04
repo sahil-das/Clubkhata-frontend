@@ -24,7 +24,7 @@ import Members from "./pages/Members";
 import MemberDetails from "./pages/MemberDetails";
 import Reports from "./pages/Reports";
 import RegisterClub from "./pages/RegisterClub";
-
+import AuditLogs from "./pages/AuditLogs";
 export default function App() {
   return (
     <AuthProvider>
@@ -57,7 +57,7 @@ export default function App() {
               <Route path="members/:memberId" element={<ProtectedRoute role="admin"><MemberDetails /></ProtectedRoute>} />
               <Route path="reports" element={<ProtectedRoute role="admin"><Reports /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute role="admin"><Settings /></ProtectedRoute>} />
-
+              <Route path="audit-logs" element={<ProtectedRoute role="admin"><AuditLogs /></ProtectedRoute>} />
             </Route>
 
             <Route path="*" element={<Navigate to="/login" />} />

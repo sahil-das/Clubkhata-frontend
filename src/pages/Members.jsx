@@ -67,6 +67,7 @@ export default function Members() {
       alert("Failed to delete member");
     }
   };
+
 // ✅ EXPORT HANDLER
   const handleExport = () => {
     exportMembersPDF({
@@ -207,7 +208,9 @@ export default function Members() {
       {selectedMemberId && (
         <SubscriptionModal 
           memberId={selectedMemberId} 
-          onClose={() => setSelectedMemberId(null)} 
+          onClose={() => setSelectedMemberId(null)}
+          // 👇 PASSED canEdit PROP HERE
+          canEdit={activeClub?.role === "admin"} 
         />
       )}
     </div>
