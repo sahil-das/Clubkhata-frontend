@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { 
   LayoutDashboard, Users, Wallet, Receipt, LogOut, ShieldCheck, 
   X, Settings, CreditCard, FileText, BadgeIndianRupee, 
-  Shield // 1. Imported Shield icon
+  Shield, Archive // ✅ Imported Archive icon
 } from "lucide-react";
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -45,7 +45,10 @@ export default function Sidebar({ isOpen, onClose }) {
     { path: "/expenses", label: "Expenses", icon: Receipt },
     { path: "/reports", label: "Reports", icon: FileText },
 
-    // 3. AUDIT LOGS: ✅ Show only if role is Admin
+    // 3. ARCHIVES: ✅ New Item
+    { path: "/archives", label: "Archives", icon: Archive },
+
+    // 4. AUDIT LOGS: ✅ Show only if role is Admin
     ...(activeClub?.role === "admin" ? [{
       path: "/audit-logs", 
       label: "Audit Logs", 
