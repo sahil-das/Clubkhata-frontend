@@ -3,24 +3,31 @@ import { useForm } from "react-hook-form";
 import api from "../api/axios";
 import { Loader2, IndianRupee, User, FileText } from "lucide-react";
 
-export default function AddPujaModal({ onClose, refresh }) {
-  const { register, handleSubmit } = useForm();
+export default function AddPujaModal({ onClose, refresh, preSelectedMemberId }) {
+  // ✅ Destructure setValue to manually set the ID if pre-selected
+  const { register, handleSubmit, setValue } = useForm();
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState([]);
 
-  // Fetch Members for Dropdown
+  // Fetch Members for Dropdown (Only if we need to select one)
   useEffect(() => {
-    const loadMembers = async () => {
-      try {
-        const res = await api.get("/members");
-        const sorted = (res.data.data || []).sort((a, b) => a.name.localeCompare(b.name));
-        setMembers(sorted);
-      } catch (err) {
-        console.error("Failed to load members", err);
-      }
-    };
-    loadMembers();
-  }, []);
+    if (preSelectedMemberId) {
+      // ✅ If pre-selected (Member Details page), just set the value and skip fetch
+      setValue("userId", preSelectedMemberId);
+    } else {
+      // Otherwise load the list (Global page)
+      const loadMembers = async () => {
+        try {
+          const res = await api.get("/members");
+          const sorted = (res.data.data || []).sort((a, b) => a.name.localeCompare(b.name));
+          setMembers(sorted);
+        } catch (err) {
+          console.error("Failed to load members", err);
+        }
+      };
+      loadMembers();
+    }
+  }, [preSelectedMemberId, setValue]);
 
   const onSubmit = async (data) => {
     if (!data.userId) return alert("Please select a member");
@@ -53,21 +60,27 @@ export default function AddPujaModal({ onClose, refresh }) {
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Select Member</label>
-            <div className="relative">
-              <User className="absolute left-3 top-3 text-gray-400" size={18} />
-              <select 
-                {...register("userId", { required: true })} 
-                className="w-full pl-10 pr-4 py-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-              >
-                <option value="">Select a member...</option>
-                {members.map(m => (
-                  <option key={m.userId} value={m.userId}>{m.name}</option>
-                ))}
-              </select>
+          {/* ✅ CONDITIONAL: Only show dropdown if NOT pre-selected */}
+          {!preSelectedMemberId && (
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Select Member</label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 text-gray-400" size={18} />
+                <select 
+                  {...register("userId", { required: true })} 
+                  className="w-full pl-10 pr-4 py-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                >
+                  <option value="">Select a member...</option>
+                  {members.map(m => (
+                    <option key={m.userId} value={m.userId}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Hidden Input to ensure ID is submitted if field is hidden */}
+          {preSelectedMemberId && <input type="hidden" {...register("userId")} />}
 
           <div className="grid grid-cols-2 gap-4">
              <div className="col-span-2">
