@@ -3,7 +3,7 @@ import {
   IndianRupee, History, Settings, FileText, Archive, CalendarRange 
 } from "lucide-react";
 
-export const NAV_ITEMS = [
+const NAV_ITEMS = [
   { 
     label: "Dashboard", 
     path: "/", 
@@ -67,3 +67,5 @@ export const NAV_ITEMS = [
     roles: ["admin"] 
   },
 ];
+
+export default NAV_ITEMS;

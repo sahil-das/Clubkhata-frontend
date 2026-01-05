@@ -1,17 +1,33 @@
-import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
-import { X, LogOut, ChevronRight } from "lucide-react";
-import { clsx } from "clsx";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
-import { NAV_ITEMS } from "../config/navigation";
+import {
+  LayoutDashboard,
+  Users,
+  Wallet,
+  Receipt,
+  LogOut,
+  ShieldCheck,
+  X,
+  Settings,
+  CreditCard,
+  FileText,
+  BadgeIndianRupee,
+  Shield,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
+import menuItems from "../config/navigation";
 
 export default function Sidebar({ isOpen, onClose }) {
   const { user, activeClub, logout } = useAuth();
-  const userRole = activeClub?.role || "member";
-  
+  const location = useLocation();
   // State to track if we should show Weekly/Monthly link
-  const [frequency, setFrequency] = useState(null); 
+  const [frequency, setFrequency] = useState(null);
+
+  const [collapsed, setCollapsed] = useState(false); // State for desktop collapse
 
   // ✅ Fetch Active Year to determine Menu Label
   useEffect(() => {
@@ -21,127 +37,153 @@ export default function Sidebar({ isOpen, onClose }) {
         if (res.data.data) {
           setFrequency(res.data.data.subscriptionFrequency); // 'weekly', 'monthly', or 'none'
         }
-      } catch (err) { 
-        console.error("Failed to fetch year config", err); 
+      } catch (err) {
+        console.error("Failed to fetch year config", err);
       }
     };
-    
+
     if (activeClub) fetchActiveYear();
   }, [activeClub]);
 
-  const handleLogout = () => {
-    if (window.confirm("Are you sure you want to log out?")) {
-      logout();
-    }
-  };
+  const isActive = (path) => location.pathname === path;
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-white border-r border-slate-200 shadow-sm">
-      {/* HEADER */}
-      <div className="h-16 flex items-center px-6 border-b border-slate-100">
-        <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold mr-3 shadow-md shadow-primary-200">
-          SC
-        </div>
-        <div className="overflow-hidden">
-            <h1 className="font-bold text-slate-800 tracking-tight leading-none truncate">Clubkhata</h1>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1 truncate">
-                {activeClub?.clubName || "Dashboard"}
-            </p>
-        </div>
-        <button onClick={onClose} className="md:hidden ml-auto text-slate-400">
-          <X size={20} />
-        </button>
-      </div>
-
-      {/* NAV LINKS */}
-      <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-        {NAV_ITEMS.map((item) => {
-          // 1. Role Check
-          if (!item.roles.includes(userRole)) return null;
-
-          // 2. Dynamic Logic for Subscriptions/Chanda
-          let label = item.label;
-          
-          if (item.path === "/contributions") {
-            // HIDE if no frequency set
-            if (!frequency || frequency === "none") return null;
-
-            // RENAME based on type
-            label = frequency === "weekly" ? "Weekly Chanda" : "Monthly Chanda";
-          }
-
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={() => onClose && window.innerWidth < 768 && onClose()}
-              className={({ isActive }) => clsx(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
-                isActive 
-                  ? "bg-primary-50 text-primary-700 font-bold shadow-sm ring-1 ring-primary-100" 
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
-              )}
-            >
-              {({ isActive }) => (
-                <>
-                  <item.icon 
-                    size={20} 
-                    className={isActive ? "text-primary-600" : "text-slate-400 group-hover:text-slate-600"} 
-                  />
-                  {/* ✅ Use the dynamic label */}
-                  <span>{label}</span>
-                  
-                  {isActive && (
-                    <ChevronRight size={16} className="ml-auto text-primary-400" />
-                  )}
-                </>
-              )}
-            </NavLink>
-          );
-        })}
-      </nav>
-
-      {/* FOOTER */}
-      <div className="p-4 border-t border-slate-100">
-        <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-3 mb-3 border border-slate-100">
-          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
-             {user?.name?.[0] || "U"}
-          </div>
-          <div className="flex-1 min-w-0">
-             <p className="text-sm font-bold text-slate-700 truncate">{user?.name}</p>
-             <p className="text-xs text-slate-500 capitalize">{userRole}</p>
-          </div>
-        </div>
-        
-        <button 
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-red-600 hover:bg-red-50 py-2 rounded-lg transition-colors"
-        >
-            <LogOut size={16} /> Logout
-        </button>
-      </div>
-    </div>
-  );
+  // Derive current user role (fall back to 'member' if absent)
+  const userRole = activeClub?.role || "member";
 
   return (
     <>
-      {/* DESKTOP SIDEBAR */}
-      <aside className="hidden md:block w-64 h-screen fixed left-0 top-0 z-40">
-        <SidebarContent />
-      </aside>
-
-      {/* MOBILE OVERLAY & DRAWER */}
+      {/* Mobile Backdrop */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div 
-            className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm animate-fade-in" 
-            onClick={onClose}
-          />
-          <div className="absolute inset-y-0 left-0 w-64 bg-white shadow-2xl animate-slide-right">
-             <SidebarContent />
-          </div>
-        </div>
+        <div
+          className="fixed inset-0 bg-black/60 z-30 md:hidden backdrop-blur-sm transition-opacity"
+          onClick={onClose}
+        />
       )}
+
+      {/* Sidebar Container */}
+      <div
+        className={`
+        fixed md:static inset-y-0 left-0 z-40
+        flex flex-col shadow-2xl
+        /* Gradient Background for "Add Color" request */
+        bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white
+        /* Width Transition */
+        ${collapsed ? "w-20" : "w-72"}
+        /* Mobile Slide Animation */
+        transform transition-all duration-300 ease-in-out
+        ${isOpen ? "translate-x-0" : "-translate-x-full"} 
+        md:translate-x-0
+      `}
+      >
+        {/* HEADER */}
+        <div
+          className={`flex items-center justify-between p-4 border-b border-white/10 h-16 transition-all`}
+        >
+          {/* Logo / Club Name */}
+          <div
+            className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ${
+              collapsed ? "w-0 opacity-0" : "w-full opacity-100"
+            }`}
+          >
+            <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/30">
+              <span className="font-bold text-white text-lg">
+                {activeClub?.clubName?.charAt(0)}
+              </span>
+            </div>
+            <div className="whitespace-nowrap">
+              <h2 className="text-sm font-bold truncate leading-tight">
+                {activeClub?.clubName || "Club Portal"}
+              </h2>
+              <p className="text-[10px] text-indigo-300 uppercase tracking-widest font-semibold flex items-center gap-1">
+                {activeClub?.role === "admin" && <ShieldCheck size={10} />}
+                {activeClub?.role || "Member"}
+              </p>
+            </div>
+          </div>
+
+          {/* Toggle Button (Desktop) */}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden md:flex p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors absolute right-4 z-50"
+            title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+
+          {/* Close Button (Mobile) */}
+          <button onClick={onClose} className="md:hidden text-gray-400 hover:text-white">
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* MENU ITEMS */}
+        <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10">
+          {menuItems.map((item) => {
+            // 1. Role Check
+            if (!item.roles.includes(userRole)) return null;
+
+            // 2. Dynamic Logic for Subscriptions/Chanda
+            let label = item.label;
+
+            if (item.path === "/contributions") {
+              // HIDE if no frequency set
+              if (!frequency || frequency === "none") return null;
+
+              // RENAME based on type
+              label = frequency === "weekly" ? "Weekly Chanda" : "Monthly Chanda";
+            }
+
+            const active = isActive(item.path);
+
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={onClose}
+                title={collapsed ? label : ""}
+                className={`
+                  flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group relative
+                  ${active
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/50"
+                    : "text-indigo-200 hover:bg-white/10 hover:text-white"
+                  }
+                  ${collapsed ? "justify-center" : ""}
+                `}
+              >
+                {/* Active Indicator Line (Left) */}
+                {active && !collapsed && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full blur-[2px]" />
+                )}
+
+                <div
+                  className={`transition-transform duration-300 ${
+                    active && !collapsed ? "scale-110" : "group-hover:scale-110"
+                  }`}
+                >
+                  <item.icon size={22} strokeWidth={active ? 2.5 : 2} />
+                </div>
+
+                <span
+                  className={`
+                  font-medium whitespace-nowrap transition-all duration-300
+                  ${collapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100"}
+                `}
+                >
+                  {label}
+                </span>
+
+                {/* Hover Tooltip (Only when collapsed) */}
+                {collapsed && (
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
+                    {label}
+                  </div>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+      </div>
     </>
   );
 }
