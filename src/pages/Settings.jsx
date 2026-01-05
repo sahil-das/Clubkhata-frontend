@@ -3,8 +3,14 @@ import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { 
   Save, AlertTriangle, CheckCircle, PlusCircle, Lock, Calculator, Calendar, 
-  Loader2, Edit3, X, Clock, Coins, Info 
+  Loader2, Edit3, X, Clock, Coins, ShieldAlert, Power 
 } from "lucide-react";
+import { clsx } from "clsx";
+
+// Design System
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import { Card } from "../components/ui/Card";
 
 export default function Settings() {
   const { activeClub } = useAuth(); 
@@ -13,6 +19,8 @@ export default function Settings() {
   
   // UI States
   const [isEditing, setIsEditing] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [closeInput, setCloseInput] = useState("");
   
   // Data States
   const [activeYearId, setActiveYearId] = useState(null);
@@ -83,29 +91,20 @@ export default function Settings() {
     });
   };
 
-  const isValid = () => {
-    if (new Date(formData.startDate) > new Date(formData.endDate)) {
-      setMessage({ type: "error", text: "End Date must be after Start Date" });
-      return false;
-    }
-    return true;
-  };
-
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!isValid()) return;
-    if (activeClub?.role !== 'admin') return alert("Admins Only");
+    if (activeClub?.role !== 'admin') return;
 
     setLoading(true);
     try {
       if (noActiveCycle) {
         await api.post("/years", formData);
-        alert("New Festival Year Started!");
+        setMessage({ type: "success", text: "New Festival Year Started!" });
       } else {
         await api.put(`/years/${activeYearId}`, formData);
         setMessage({ type: "success", text: "Settings updated successfully!" });
       }
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
       setMessage({ type: "error", text: err.response?.data?.message || "Operation failed" });
       setLoading(false);
@@ -113,22 +112,17 @@ export default function Settings() {
   };
 
   const handleCloseYear = async () => {
-    if (activeClub?.role !== 'admin') return;
-    const confirmText = prompt("TYPE 'CLOSE' TO CONFIRM.\n\nThis will FREEZE the current financial year.");
-    if (confirmText !== "CLOSE") return;
-
+    if (activeClub?.role !== 'admin' || closeInput !== "CLOSE") return;
     try {
       setLoading(true);
       await api.post(`/years/${activeYearId}/close`);
-      alert("Year Closed Successfully.");
       window.location.reload(); 
     } catch (err) {
-      alert("Failed to close year");
+      setMessage({ type: "error", text: "Failed to close year" });
       setLoading(false);
     }
   };
 
-  // Helper for Display Label
   const getFrequencyLabel = (freq) => {
     if (freq === 'weekly') return 'Weekly Subscription';
     if (freq === 'monthly') return 'Monthly Subscription';
@@ -137,301 +131,291 @@ export default function Settings() {
 
   const totalExpected = formData.amountPerInstallment * formData.totalInstallments;
 
-  if (loading && !formData.name) return <div className="p-10 text-center"><Loader2 className="animate-spin mx-auto text-indigo-600"/></div>;
+  if (loading && !formData.name) return <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-primary-600"/></div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+    <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-fade-in">
       
       {/* HEADER */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">System Settings</h2>
-          <p className="text-gray-500 text-sm">
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">System Settings</h2>
+          <p className="text-slate-500 text-sm">
             {noActiveCycle ? "Setup a new financial year." : "Manage active cycle configuration."}
           </p>
         </div>
         
         {!noActiveCycle && !isEditing && activeClub?.role === "admin" && (
-          <button 
+          <Button 
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-100"
+            leftIcon={<Edit3 size={18} />}
           >
-            <Edit3 size={18} /> Edit Configuration
-          </button>
+             Edit Configuration
+          </Button>
         )}
       </div>
 
       {message && (
-        <div className={`p-4 rounded-xl flex items-center gap-3 shadow-sm ${message.type === "success" ? "bg-green-50 text-green-700 border border-green-100" : "bg-red-50 text-red-700 border border-red-100"}`}>
+        <div className={clsx(
+            "p-4 rounded-xl flex items-center gap-3 shadow-sm border animate-slide-up",
+            message.type === "success" ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-red-50 text-red-700 border-red-100"
+        )}>
           {message.type === "success" ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
-          <span className="font-medium">{message.text}</span>
+          <span className="font-medium text-sm">{message.text}</span>
         </div>
       )}
 
       {/* ==================== VIEW MODE (READ ONLY) ==================== */}
       {!isEditing && !noActiveCycle && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in">
-          
-          <div className="bg-gradient-to-r from-gray-50 to-white px-8 py-6 border-b border-gray-100">
-             <div className="flex items-center gap-3 mb-2">
-                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200 uppercase tracking-wider">
-                  Active
-                </span>
-                <span className="text-gray-400 text-sm font-medium flex items-center gap-1">
-                   <Clock size={14}/> {new Date(formData.startDate).getFullYear()}
-                </span>
-             </div>
-             <h1 className="text-3xl font-bold text-gray-800">{formData.name}</h1>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2">
-            
-            {/* Left: Details */}
-            <div className="p-8 space-y-6 border-r border-gray-100">
-               <div>
-                  <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Duration</label>
-                  <div className="flex items-center gap-2 text-gray-700 font-medium">
-                     <Calendar size={18} className="text-indigo-600"/>
-                     {new Date(formData.startDate).toLocaleDateString()} 
-                     <span className="text-gray-400 mx-2">➝</span>
-                     {new Date(formData.endDate).toLocaleDateString()}
-                  </div>
-               </div>
-
-               <div>
-                  <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Collection Rule</label>
-                  <p className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                     {getFrequencyLabel(formData.subscriptionFrequency)}
-                  </p>
-                  {formData.subscriptionFrequency !== 'none' && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      {formData.totalInstallments} installments of <span className="text-indigo-600 font-bold">₹{formData.amountPerInstallment}</span> each.
-                    </p>
-                  )}
-               </div>
-
-               {/* Only show Projection if NOT 'none' */}
-               {formData.subscriptionFrequency !== 'none' && (
-                 <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Total Projected Fund</label>
-                    <div className="flex items-center gap-2 text-2xl font-bold text-indigo-700">
-                       <Coins size={24}/> ₹ {totalExpected.toLocaleString()}
+        <div className="space-y-6">
+            {/* Main Info Card */}
+            <Card className="overflow-hidden border-slate-200" noPadding>
+                <div className="bg-slate-50/50 px-8 py-6 border-b border-slate-100">
+                    <div className="flex items-center gap-3 mb-2">
+                        <span className="bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-emerald-200 uppercase tracking-wider">
+                        Active Year
+                        </span>
+                        <span className="text-slate-400 text-sm font-medium flex items-center gap-1">
+                        <Clock size={14}/> {new Date(formData.startDate).getFullYear()}
+                        </span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">Target per member per year</p>
-                 </div>
-               )}
-            </div>
-
-            {/* Right: Actions */}
-            <div className="p-8 bg-gray-50/50 flex flex-col justify-between">
-                <div>
-                   <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
-                     <Lock size={16}/> Administration
-                   </h4>
-                   <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-                     The current financial year is active. Collections are being recorded under this configuration. 
-                     Switch to Edit Mode to modify rules.
-                   </p>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{formData.name}</h1>
                 </div>
-                
-                {activeClub?.role === "admin" && (
-                   <div className="border-t border-gray-200 pt-6 mt-6">
-                      <button 
-                        onClick={handleCloseYear} 
-                        className="w-full py-3 bg-white border border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition shadow-sm text-sm"
-                      >
-                        End Financial Year (Close)
-                      </button>
-                      <p className="text-xs text-center text-gray-400 mt-3">
-                        Irreversible action. Freezes all data.
-                      </p>
-                   </div>
-                )}
-            </div>
-          </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2">
+                    <div className="p-8 space-y-8 border-r border-slate-100">
+                         <div>
+                            <label className="text-xs font-bold text-slate-400 uppercase block mb-1">Duration</label>
+                            <div className="flex items-center gap-2 text-slate-700 font-medium bg-slate-50 inline-flex px-3 py-1.5 rounded-lg border border-slate-100">
+                                <Calendar size={16} className="text-slate-400"/>
+                                {new Date(formData.startDate).toLocaleDateString()} 
+                                <span className="text-slate-300">➝</span>
+                                {new Date(formData.endDate).toLocaleDateString()}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-bold text-slate-400 uppercase block mb-1">Collection Rule</label>
+                            <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                {getFrequencyLabel(formData.subscriptionFrequency)}
+                            </p>
+                            {formData.subscriptionFrequency !== 'none' && (
+                                <p className="text-sm text-slate-500 mt-1">
+                                {formData.totalInstallments} installments of <span className="text-primary-600 font-bold">₹{formData.amountPerInstallment}</span> each.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="p-8 bg-slate-50/30 flex flex-col justify-center items-center text-center">
+                        {formData.subscriptionFrequency !== 'none' ? (
+                            <>
+                                <div className="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+                                    <Coins size={32} />
+                                </div>
+                                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Projected Revenue</p>
+                                <p className="text-3xl font-bold text-slate-800 tracking-tight">₹ {totalExpected.toLocaleString()}</p>
+                                <p className="text-xs text-slate-400 mt-1">Target per member</p>
+                            </>
+                        ) : (
+                            <p className="text-sm text-slate-500 italic">No recurring revenue projection for donation-based events.</p>
+                        )}
+                    </div>
+                </div>
+            </Card>
+
+            {/* DANGER ZONE */}
+            {activeClub?.role === "admin" && (
+                <Card className="border-red-100 shadow-none overflow-hidden" noPadding>
+                     <div className="bg-red-50/50 p-6 border-b border-red-100 flex items-start gap-4">
+                        <div className="p-3 bg-red-100 text-red-600 rounded-xl shrink-0">
+                            <ShieldAlert size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-red-900">Danger Zone</h3>
+                            <p className="text-sm text-red-600/80 mt-1">
+                                Closing the financial year is irreversible. It will freeze all current data and archive it.
+                            </p>
+                        </div>
+                     </div>
+                     <div className="p-6 bg-red-50/20">
+                        {!showCloseConfirm ? (
+                            <Button 
+                                variant="danger" 
+                                onClick={() => setShowCloseConfirm(true)}
+                                leftIcon={<Power size={18} />}
+                            >
+                                Close Financial Year
+                            </Button>
+                        ) : (
+                            <div className="flex items-end gap-3 animate-slide-up">
+                                <div className="flex-1">
+                                    <label className="text-xs font-bold text-red-700 mb-1 block">Type "CLOSE" to confirm</label>
+                                    <Input 
+                                        value={closeInput}
+                                        onChange={(e) => setCloseInput(e.target.value)}
+                                        placeholder="CLOSE"
+                                        className="border-red-200 focus:border-red-500 focus:ring-red-200"
+                                    />
+                                </div>
+                                <Button 
+                                    variant="danger" 
+                                    onClick={handleCloseYear}
+                                    disabled={closeInput !== "CLOSE"}
+                                    isLoading={loading}
+                                >
+                                    Confirm Closure
+                                </Button>
+                                <Button variant="ghost" onClick={() => setShowCloseConfirm(false)}>Cancel</Button>
+                            </div>
+                        )}
+                     </div>
+                </Card>
+            )}
         </div>
       )}
 
-      {/* ==================== EDIT MODE (FORM) ==================== */}
+      {/* ==================== EDIT/CREATE FORM ==================== */}
       {(isEditing || noActiveCycle) && (
-        <div className={`rounded-2xl shadow-sm border overflow-hidden bg-white ${noActiveCycle ? "border-indigo-200" : "border-amber-200"}`}>
+        <Card className={noActiveCycle ? "border-primary-200 shadow-lg" : "border-slate-200"}>
           
-          <div className={`px-6 py-4 border-b flex justify-between items-center ${noActiveCycle ? "bg-indigo-50" : "bg-amber-50"}`}>
-            <h3 className={`font-bold flex items-center gap-2 ${noActiveCycle ? "text-indigo-700" : "text-amber-800"}`}>
-              {noActiveCycle ? <PlusCircle size={20} /> : <Edit3 size={20} />}
+          <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+            <h3 className="font-bold text-lg flex items-center gap-2 text-slate-800">
+              {noActiveCycle ? <PlusCircle size={20} className="text-primary-600"/> : <Edit3 size={20} className="text-slate-500"/>}
               {noActiveCycle ? "Setup New Year" : "Edit Configuration"}
             </h3>
             {!noActiveCycle && (
-              <button onClick={() => setIsEditing(false)} className="text-gray-500 hover:text-gray-800">
+              <button onClick={() => setIsEditing(false)} className="text-slate-400 hover:text-slate-600 transition">
                 <X size={20}/>
               </button>
             )}
           </div>
 
-          <form onSubmit={handleSave} className="p-6 space-y-6">
+          <form onSubmit={handleSave} className="space-y-6">
             
             {/* Basic Info */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Event Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Date</label>
-                  <input
-                    type="date"
-                    min={formData.startDate} 
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <hr className="border-dashed" />
-
-            {/* Collection Rules */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                 <div>
-                    <label className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase mb-1">
-                       Frequency
-                       {hasExistingPayments && !noActiveCycle && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded flex items-center gap-1 font-medium"><Lock size={10} /> Locked</span>}
-                    </label>
-                    <div className="relative">
-                      <select 
-                          value={formData.subscriptionFrequency}
-                          onChange={(e) => handleFrequencyChange(e.target.value)}
-                          disabled={hasExistingPayments && !noActiveCycle}
-                          className={`w-full border rounded-lg px-3 py-2 outline-none appearance-none ${hasExistingPayments && !noActiveCycle ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300"}`}
-                      >
-                          <option value="weekly">Weekly Collection</option>
-                          <option value="monthly">Monthly Collection</option>
-                          <option value="none">No Recurring (Donations Only)</option>
-                      </select>
-                    </div>
-                 </div>
-
-                 {formData.subscriptionFrequency !== 'none' && (
-                   <>
-                     <div className="relative">
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                        Amount (₹)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formData.amountPerInstallment}
-                        onChange={(e) => setFormData({ ...formData, amountPerInstallment: e.target.value })}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none font-bold text-gray-700 focus:ring-2 focus:ring-amber-500"
+                <div className="md:col-span-2">
+                    <Input 
+                        label="Event Name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="e.g. Durga Puja 2026"
                         required
-                      />
-                      {!noActiveCycle && hasExistingPayments && (
-                        <div className="mt-2 text-xs text-amber-700 bg-amber-50 p-2 rounded flex gap-2 items-start">
-                           <AlertTriangle size={14} className="mt-0.5 shrink-0"/>
-                           <p>Updating this will recalculate past paid installments.</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {formData.subscriptionFrequency === 'weekly' ? (
-                       <div>
-                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Total Weeks</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="100"
-                            value={formData.totalInstallments}
-                            onChange={(e) => setFormData({ ...formData, totalInstallments: e.target.value })}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none"
-                            required
-                          />
-                       </div>
-                    ) : (
-                      <div className="bg-gray-50 p-2 rounded-lg border border-gray-200">
-                          <span className="text-xs text-gray-500 block">Duration</span>
-                          <span className="text-sm font-bold text-gray-700">12 Months (Fixed)</span>
-                      </div>
-                    )}
-                   </>
-                 )}
-              </div>
-
-              {/* Projection Box - Hidden if None */}
-              {formData.subscriptionFrequency !== 'none' ? (
-                <div className="bg-indigo-50 rounded-xl p-5 flex flex-col justify-center border border-indigo-100">
-                   <div className="flex items-center gap-2 text-indigo-800 font-bold mb-2 uppercase text-xs tracking-wider">
-                     <Calculator size={16} /> New Projection
-                   </div>
-                   <p className="text-3xl font-bold text-indigo-700">₹ {totalExpected.toLocaleString()}</p>
-                   <p className="text-xs text-indigo-500 mt-1 font-medium">Target per member</p>
+                    />
                 </div>
-              ) : (
-                <div className="bg-gray-50 rounded-xl p-5 flex flex-col justify-center border border-gray-200 text-center">
-                    <p className="text-sm text-gray-500 italic">No recurring revenue projection for donation-based events.</p>
+                <div>
+                    <Input 
+                        type="date"
+                        label="Start Date"
+                        value={formData.startDate}
+                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                        required
+                    />
                 </div>
-              )}
+                <div>
+                    <Input 
+                        type="date"
+                        label="End Date"
+                        min={formData.startDate}
+                        value={formData.endDate}
+                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                        required
+                    />
+                </div>
             </div>
 
-            {/* Opening Balance */}
+            <div className="h-px bg-slate-100 my-4" />
+
+            {/* Rules */}
+            <div className="space-y-4">
+                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Lock size={14} className="text-slate-400"/> Financial Rules
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Frequency</label>
+                        <select 
+                            value={formData.subscriptionFrequency}
+                            onChange={(e) => handleFrequencyChange(e.target.value)}
+                            disabled={hasExistingPayments && !noActiveCycle}
+                            className="w-full bg-white border border-slate-200 text-slate-900 text-sm rounded-xl py-3 px-4 outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 disabled:bg-slate-50 disabled:text-slate-400"
+                        >
+                            <option value="weekly">Weekly Collection</option>
+                            <option value="monthly">Monthly Collection</option>
+                            <option value="none">No Recurring (Donations Only)</option>
+                        </select>
+                        {hasExistingPayments && !noActiveCycle && (
+                            <p className="text-[10px] text-amber-600 mt-1 ml-1 flex items-center gap-1">
+                                <Lock size={10} /> Locked due to existing payments
+                            </p>
+                        )}
+                    </div>
+
+                    {formData.subscriptionFrequency !== 'none' && (
+                        <>
+                            <Input 
+                                type="number"
+                                label="Amount per Installment"
+                                value={formData.amountPerInstallment}
+                                onChange={(e) => setFormData({ ...formData, amountPerInstallment: e.target.value })}
+                                icon={Coins}
+                                required
+                            />
+                            
+                            {formData.subscriptionFrequency === 'weekly' ? (
+                                <Input 
+                                    type="number"
+                                    label="Total Weeks"
+                                    value={formData.totalInstallments}
+                                    onChange={(e) => setFormData({ ...formData, totalInstallments: e.target.value })}
+                                    required
+                                />
+                            ) : (
+                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col justify-center">
+                                    <span className="text-xs font-bold text-slate-400 uppercase">Duration</span>
+                                    <span className="text-sm font-bold text-slate-700">12 Months (Fixed)</span>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Opening Balance (Only for new year) */}
             {noActiveCycle && (
-              <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
-                <label className="block text-xs font-bold text-yellow-700 uppercase mb-1">Opening Balance</label>
-                <input
-                  type="number"
-                  value={formData.openingBalance}
-                  onChange={(e) => setFormData({ ...formData, openingBalance: e.target.value })}
-                  className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-white"
-                  placeholder="0"
-                />
-              </div>
+                <div className="bg-yellow-50/50 p-4 rounded-xl border border-yellow-100">
+                    <Input 
+                        type="number"
+                        label="Opening Balance (Optional)"
+                        value={formData.openingBalance}
+                        onChange={(e) => setFormData({ ...formData, openingBalance: e.target.value })}
+                        placeholder="0"
+                        className="bg-white"
+                    />
+                </div>
             )}
 
-            {/* Action Buttons */}
-            {activeClub?.role === 'admin' && (
-              <div className="flex gap-3 pt-2">
-                 {!noActiveCycle && (
-                   <button 
-                     type="button" 
-                     onClick={() => setIsEditing(false)}
-                     className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition"
-                   >
-                     Cancel
-                   </button>
-                 )}
-                 <button
-                   type="submit"
-                   disabled={loading}
-                   className={`flex-1 py-3 rounded-xl font-bold text-white shadow-md transition-transform active:scale-95 flex justify-center gap-2 ${noActiveCycle ? "bg-indigo-600 hover:bg-indigo-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
-                 >
-                   {noActiveCycle ? <PlusCircle size={20} /> : <Save size={20} />}
-                   {loading ? <Loader2 className="animate-spin" /> : (noActiveCycle ? "Start Festival Year" : "Save Changes")}
-                 </button>
-              </div>
-            )}
+            <div className="flex gap-3 pt-4">
+                {!noActiveCycle && (
+                    <Button variant="secondary" onClick={() => setIsEditing(false)} className="flex-1">
+                        Cancel
+                    </Button>
+                )}
+                <Button 
+                    type="submit" 
+                    isLoading={loading}
+                    className="flex-1"
+                    leftIcon={noActiveCycle ? <PlusCircle size={18} /> : <Save size={18} />}
+                >
+                    {noActiveCycle ? "Start Festival Year" : "Save Changes"}
+                </Button>
+            </div>
+
           </form>
-        </div>
+        </Card>
       )}
-
     </div>
   );
 }

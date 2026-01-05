@@ -4,6 +4,11 @@ import {
   Archive, Calendar, ChevronRight, Download, Lock, Loader2, TrendingUp, TrendingDown 
 } from "lucide-react";
 import { exportFinancialReportPDF } from "../utils/exportFinancialReportPDF"; 
+import { clsx } from "clsx";
+
+// Design System
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
 
 export default function Archives() {
   const [years, setYears] = useState([]);
@@ -52,7 +57,6 @@ export default function Archives() {
     
     const { summary, records, info } = yearDetails;
 
-    // ✅ Pass 'frequency' to the PDF generator
     exportFinancialReportPDF({
       clubName: "Club Archive Record",
       year: selectedYear.name,
@@ -60,14 +64,12 @@ export default function Archives() {
       totalIncome: summary.income.total,
       totalExpense: summary.expense,
       netBalance: summary.netBalance,
-      frequency: info.subscriptionFrequency, // <-- IMPORTANT
-      
+      frequency: info.subscriptionFrequency, 
       incomeSources: {
         weekly: summary.income.subscriptions,
         puja: summary.income.fees,
         donation: summary.income.donations
       },
-      
       details: {
         expenses: records.expenses,
         donations: records.donations,
@@ -76,123 +78,116 @@ export default function Archives() {
     });
   };
 
-  // Helper to determine label
-  const getSubLabel = (freq) => {
-    if (freq === "monthly") return "Subscriptions (Monthly)";
-    if (freq === "weekly") return "Subscriptions (Weekly)";
-    return null; // Hidden
-  };
-
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20 animate-fade-in">
       
       {/* HEADER */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-gray-800 text-white rounded-xl shadow-lg">
+      <div className="flex items-center gap-4 mb-8">
+        <div className="p-3 bg-slate-900 text-white rounded-2xl shadow-lg shadow-slate-200">
            <Archive size={24} />
         </div>
         <div>
-           <h1 className="text-2xl font-bold text-gray-800">Archives</h1>
-           <p className="text-gray-500 text-sm">Records of previous festival years.</p>
+           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Archives</h1>
+           <p className="text-slate-500 text-sm">Records of previous festival years.</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-10"><Loader2 className="animate-spin text-indigo-600" /></div>
+        <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary-600" /></div>
       ) : years.length === 0 ? (
-        <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-           <p className="text-gray-500">No closed years found yet.</p>
+        <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+             <Lock className="text-slate-300" size={24}/>
+           </div>
+           <p className="text-slate-500 font-medium">No closed years found yet.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {years.map((year) => (
-            <div key={year._id} className={`bg-white rounded-2xl border transition-all overflow-hidden ${selectedYear?._id === year._id ? 'border-indigo-500 shadow-lg' : 'border-gray-200 shadow-sm hover:border-indigo-300'}`}>
+            <Card key={year._id} noPadding className={clsx("transition-all duration-300", selectedYear?._id === year._id ? "ring-2 ring-primary-500 shadow-lg" : "hover:border-primary-200")}>
                
-               {/* YEAR CARD HEADER */}
+               {/* YEAR ROW */}
                <div 
                  onClick={() => handleViewYear(year)}
-                 className="p-5 flex items-center justify-between cursor-pointer bg-white hover:bg-gray-50 transition-colors"
+                 className="p-5 flex items-center justify-between cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
                >
                   <div className="flex items-center gap-4">
-                     <div className={`p-3 rounded-full ${selectedYear?._id === year._id ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
+                     <div className={clsx("p-3 rounded-xl transition-colors", selectedYear?._id === year._id ? 'bg-primary-50 text-primary-600' : 'bg-slate-100 text-slate-400')}>
                         <Calendar size={20} />
                      </div>
                      <div>
-                        <h3 className="font-bold text-lg text-gray-800">{year.name}</h3>
-                        <p className="text-xs text-gray-500 flex items-center gap-2">
+                        <h3 className="font-bold text-lg text-slate-800">{year.name}</h3>
+                        <p className="text-xs text-slate-500 flex items-center gap-2">
                            {new Date(year.startDate).getFullYear()} • 
-                           <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                              <Lock size={10} /> Closed
+                           <span className="flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">
+                              Closed
                            </span>
                         </p>
                      </div>
                   </div>
 
                   <div className="text-right hidden sm:block">
-                     <p className="text-xs font-bold text-gray-400 uppercase">Closing Balance</p>
-                     <p className="font-mono font-bold text-xl text-gray-700">Rs. {year.closingBalance?.toLocaleString('en-IN')}</p>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Closing Balance</p>
+                     <p className="font-mono font-bold text-lg text-slate-700">₹ {year.closingBalance?.toLocaleString('en-IN')}</p>
                   </div>
                   
-                  <ChevronRight size={20} className={`text-gray-400 transition-transform ${selectedYear?._id === year._id ? 'rotate-90' : ''}`} />
+                  <ChevronRight size={20} className={clsx("text-slate-400 transition-transform duration-300", selectedYear?._id === year._id && "rotate-90")} />
                </div>
 
-               {/* EXPANDED DETAILS PANEL */}
+               {/* EXPANDED DETAILS */}
                {selectedYear?._id === year._id && (
-                  <div className="bg-gray-50 border-t border-gray-100 p-6 animate-in slide-in-from-top-2">
+                  <div className="bg-slate-50/50 border-t border-slate-100 p-6 animate-slide-up">
                      {detailLoading || !yearDetails ? (
-                        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-indigo-600" /></div>
+                        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary-600" /></div>
                      ) : (
                         <div className="space-y-6">
                            
-                           {/* 1. KEY METRICS */}
+                           {/* METRICS */}
                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                               <DetailBox label="Opening Balance" amount={yearDetails.summary.openingBalance} />
                               <DetailBox label="Total Income" amount={yearDetails.summary.income.total} color="text-emerald-600" icon={<TrendingUp size={14}/>} />
                               <DetailBox label="Total Expenses" amount={yearDetails.summary.expense} color="text-rose-600" icon={<TrendingDown size={14}/>} />
-                              <DetailBox label="Net Balance" amount={yearDetails.summary.netBalance} isBold color="text-indigo-600" />
+                              <DetailBox label="Net Balance" amount={yearDetails.summary.netBalance} isBold color="text-primary-700" />
                            </div>
 
-                           {/* 2. BREAKDOWN TABLES */}
+                           {/* BREAKDOWN */}
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                                    <h4 className="font-bold text-gray-700 mb-2 border-b pb-2">Income Sources</h4>
-                                    <div className="space-y-2 mt-2">
-                                        {/* ✅ DYNAMIC SUBSCRIPTION ROW */}
-                                        {getSubLabel(yearDetails.info.subscriptionFrequency) && (
-                                            <Row 
-                                              label={getSubLabel(yearDetails.info.subscriptionFrequency)} 
-                                              value={yearDetails.summary.income.subscriptions} 
-                                            />
+                                <Card noPadding className="bg-white">
+                                    <div className="p-3 border-b border-slate-50 font-bold text-slate-700 text-xs uppercase bg-slate-50/50">Income Sources</div>
+                                    <div className="p-3 space-y-2">
+                                        {yearDetails.info.subscriptionFrequency !== 'none' && (
+                                            <Row label="Subscriptions" value={yearDetails.summary.income.subscriptions} />
                                         )}
                                         <Row label="Puja Fees" value={yearDetails.summary.income.fees} />
                                         <Row label="Donations" value={yearDetails.summary.income.donations} />
                                     </div>
-                                </div>
-                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                                    <h4 className="font-bold text-gray-700 mb-2 border-b pb-2">Record Counts</h4>
-                                    <div className="space-y-2 mt-2">
+                                </Card>
+                                <Card noPadding className="bg-white">
+                                    <div className="p-3 border-b border-slate-50 font-bold text-slate-700 text-xs uppercase bg-slate-50/50">Record Counts</div>
+                                    <div className="p-3 space-y-2">
                                         <Row label="Expense Bills" value={yearDetails.records.expenses.length} isCount />
                                         <Row label="Fee Records" value={yearDetails.records.fees.length} isCount />
                                         <Row label="Donations" value={yearDetails.records.donations.length} isCount />
                                     </div>
-                                </div>
+                                </Card>
                            </div>
 
-                           {/* 3. EXPORT BUTTON */}
-                           <div className="flex justify-end pt-4 border-t border-gray-200">
-                              <button 
+                           {/* EXPORT */}
+                           <div className="flex justify-end pt-2">
+                              <Button 
+                                variant="secondary"
                                 onClick={handleExport}
-                                className="flex items-center gap-2 bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-indigo-50 hover:border-indigo-200 transition shadow-sm active:scale-95"
+                                leftIcon={<Download size={16} />}
                               >
-                                 <Download size={16} /> Download Full Report
-                              </button>
+                                 Download Full Report
+                              </Button>
                            </div>
                         </div>
                      )}
                   </div>
                )}
 
-            </div>
+            </Card>
           ))}
         </div>
       )}
@@ -201,16 +196,14 @@ export default function Archives() {
   );
 }
 
-// --- HELPER COMPONENTS ---
-
 function DetailBox({ label, amount, color, isBold, icon }) {
    return (
-      <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
-         <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1 mb-1">
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+         <p className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1 mb-1 tracking-wider">
             {icon} {label}
          </p>
-         <p className={`font-mono text-lg ${isBold ? 'font-black' : 'font-medium'} ${color || 'text-gray-600'}`}>
-            Rs. {(amount || 0).toLocaleString('en-IN')}
+         <p className={clsx("font-mono text-lg", isBold ? 'font-black' : 'font-medium', color || 'text-slate-600')}>
+            ₹ {(amount || 0).toLocaleString('en-IN')}
          </p>
       </div>
    )
@@ -218,10 +211,10 @@ function DetailBox({ label, amount, color, isBold, icon }) {
 
 function Row({ label, value, isCount }) {
     return (
-        <div className="flex justify-between items-center py-1 border-b border-gray-50 last:border-0">
-            <span className="text-gray-500 font-medium">{label}</span>
-            <span className="font-mono font-bold text-gray-700">
-                {isCount ? value : `Rs. ${value.toLocaleString('en-IN')}`}
+        <div className="flex justify-between items-center py-1 border-b border-slate-50 last:border-0 text-sm">
+            <span className="text-slate-500 font-medium">{label}</span>
+            <span className="font-mono font-bold text-slate-700">
+                {isCount ? value : `₹ ${value.toLocaleString('en-IN')}`}
             </span>
         </div>
     )
