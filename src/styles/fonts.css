@@ -1,0 +1,8 @@
+/* src/styles/fonts.css */
+/* Use Inter via Google CDN (dev) — for production self-host fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+:root {
+  --rounded-lg: 0.5rem;
+  --rounded-xl: 0.75rem;
+}
