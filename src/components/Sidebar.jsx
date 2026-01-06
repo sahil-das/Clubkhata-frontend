@@ -46,7 +46,6 @@ export default function Sidebar({ isOpen, onClose }) {
         bg-white text-slate-700 border-r border-slate-200 shadow-xl 
         /* Animation Classes */
         transition-all duration-300 ease-in-out
-        /* FIX: Prevent horizontal scrolling */
         overflow-x-hidden
         
         /* Mobile: Slide Logic */
@@ -54,14 +53,20 @@ export default function Sidebar({ isOpen, onClose }) {
         
         /* Desktop: Always visible + Width Logic */
         md:translate-x-0 md:static md:shadow-none
-        ${collapsed ? "md:w-20" : "md:w-72 w-72"}
+        
+        /* FIX 1: Ensure width is always w-72 on mobile, only use w-20 on md screens if collapsed */
+        ${collapsed ? "md:w-20 w-72" : "md:w-72 w-72"}
       `}
       >
         {/* HEADER */}
         <div className="flex items-center justify-between p-4 h-16 border-b border-slate-100 relative shrink-0">
            
            {/* BRANDING */}
-           <div className={`flex items-center gap-3 transition-all duration-300 ease-in-out ${collapsed ? "justify-center w-full px-0" : "w-full"}`}>
+           <div className={`
+             flex items-center transition-all duration-300 ease-in-out
+             /* FIX 2: Only center content on desktop if collapsed. On mobile, keep standard layout */
+             ${collapsed ? "md:justify-center md:px-0 w-full" : "w-full gap-3"}
+           `}>
              
              {/* LOGO */}
              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 z-10 relative">
@@ -69,7 +74,11 @@ export default function Sidebar({ isOpen, onClose }) {
              </div>
 
              {/* TEXT */}
-             <div className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${collapsed ? "w-0 opacity-0" : "w-40 opacity-100"}`}>
+             {/* FIX 3: Force text to be visible on mobile (w-40 opacity-100) even if collapsed is true */}
+             <div className={`
+               whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out
+               ${collapsed ? "md:w-0 md:opacity-0 w-40 opacity-100" : "w-40 opacity-100"}
+             `}>
                <h2 className="text-sm font-bold truncate leading-tight tracking-wide text-slate-800">ClubKhata</h2>
                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold truncate">
                  {activeClub?.clubName || "Select Club"}
@@ -115,8 +124,8 @@ export default function Sidebar({ isOpen, onClose }) {
                     ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100" 
                     : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                   }
-                  /* FIX: Remove gap when collapsed to perfectly center icon */
-                  ${collapsed ? "justify-center gap-0" : "gap-3"}
+                  /* FIX 4: Only remove gap on desktop when collapsed. Keep gap on mobile. */
+                  ${collapsed ? "md:justify-center md:gap-0 gap-3" : "gap-3"}
                 `}
               >
                 {/* Icon */}
@@ -127,18 +136,19 @@ export default function Sidebar({ isOpen, onClose }) {
                 />
                 
                 {/* Label */}
+                {/* FIX 5: Force label visible on mobile (w-32 opacity-100) even if collapsed */}
                 <span 
                   className={`
                     font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out
-                    ${collapsed ? "w-0 opacity-0" : "w-32 opacity-100"}
+                    ${collapsed ? "md:w-0 md:opacity-0 w-32 opacity-100" : "w-32 opacity-100"}
                   `}
                 >
                   {label}
                 </span>
 
-                {/* Tooltip (Only on Collapsed + Hover) */}
+                {/* Tooltip (Only on Collapsed + Hover + Desktop) */}
                 {collapsed && (
-                  <div className="absolute left-14 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                  <div className="hidden md:block absolute left-14 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
                     {label}
                     <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-slate-800"></div>
                   </div>
