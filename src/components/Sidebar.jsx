@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import {
-  ShieldCheck, X, ChevronLeft, ChevronRight,
+  X, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import menuItems from "../config/navigation";
 
@@ -33,7 +33,7 @@ export default function Sidebar({ isOpen, onClose }) {
     <>
       {/* --- MOBILE BACKDROP --- */}
       <div
-        className={`fixed inset-0 bg-slate-900/60 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-slate-900/40 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
@@ -43,9 +43,11 @@ export default function Sidebar({ isOpen, onClose }) {
       <div
         className={`
         fixed inset-y-0 left-0 z-50 flex flex-col 
-        bg-slate-900 text-white shadow-2xl 
+        bg-white text-slate-700 border-r border-slate-200 shadow-xl 
         /* Animation Classes */
         transition-all duration-300 ease-in-out
+        /* FIX: Prevent horizontal scrolling */
+        overflow-x-hidden
         
         /* Mobile: Slide Logic */
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
@@ -56,38 +58,43 @@ export default function Sidebar({ isOpen, onClose }) {
       `}
       >
         {/* HEADER */}
-        <div className="flex items-center justify-between p-4 h-16 border-b border-white/10 relative shrink-0">
-           {/* Branding - Animate Width/Opacity */}
-           <div className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ease-in-out ${collapsed ? "w-0 opacity-0" : "w-full opacity-100"}`}>
-             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/30">
+        <div className="flex items-center justify-between p-4 h-16 border-b border-slate-100 relative shrink-0">
+           
+           {/* BRANDING */}
+           <div className={`flex items-center gap-3 transition-all duration-300 ease-in-out ${collapsed ? "justify-center w-full px-0" : "w-full"}`}>
+             
+             {/* LOGO */}
+             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 z-10 relative">
                <span className="font-bold text-white text-xs tracking-tighter">CK</span>
              </div>
-             <div className="whitespace-nowrap overflow-hidden">
-               <h2 className="text-sm font-bold truncate leading-tight tracking-wide">ClubKhata</h2>
-               <p className="text-[10px] text-indigo-300 uppercase tracking-wider font-semibold truncate">
+
+             {/* TEXT */}
+             <div className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${collapsed ? "w-0 opacity-0" : "w-40 opacity-100"}`}>
+               <h2 className="text-sm font-bold truncate leading-tight tracking-wide text-slate-800">ClubKhata</h2>
+               <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold truncate">
                  {activeClub?.clubName || "Select Club"}
                </p>
              </div>
            </div>
 
            {/* Mobile Close Button */}
-           <button onClick={onClose} className="md:hidden text-slate-400 hover:text-white p-1">
+           <button onClick={onClose} className="md:hidden text-slate-400 hover:text-slate-600 p-1 absolute right-4">
              <X size={24} />
            </button>
 
            {/* Desktop Collapse Toggle */}
            <button
              onClick={() => setCollapsed(!collapsed)}
-             className="hidden md:flex items-center justify-center w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors absolute -right-3 top-1/2 -translate-y-1/2 border border-slate-700 z-50 shadow-sm"
+             className="hidden md:flex items-center justify-center w-6 h-6 rounded-full bg-white hover:bg-slate-50 text-slate-400 hover:text-indigo-600 transition-colors absolute -right-3 top-1/2 -translate-y-1/2 border border-slate-200 z-50 shadow-sm"
            >
              {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
            </button>
         </div>
 
         {/* NAVIGATION */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-1 custom-scrollbar">
           {menuItems.map((item) => {
-            if (!item.roles.includes(userRole)) return null;
+            if (item.roles && !item.roles.includes(userRole)) return null;
 
             let label = item.label;
             if (item.path === "/contributions") {
@@ -103,18 +110,23 @@ export default function Sidebar({ isOpen, onClose }) {
                 to={item.path}
                 onClick={onClose}
                 className={`
-                  flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative
+                  flex items-center px-3 py-3 rounded-xl transition-all duration-200 group relative
                   ${active 
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-900/20" 
-                    : "text-slate-400 hover:bg-white/5 hover:text-white"
+                    ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100" 
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                   }
-                  ${collapsed ? "justify-center" : ""}
+                  /* FIX: Remove gap when collapsed to perfectly center icon */
+                  ${collapsed ? "justify-center gap-0" : "gap-3"}
                 `}
               >
-                {/* Icon - Always visible */}
-                <item.icon size={20} strokeWidth={active ? 2.5 : 2} className="shrink-0" />
+                {/* Icon */}
+                <item.icon 
+                  size={20} 
+                  strokeWidth={active ? 2.5 : 2} 
+                  className={`shrink-0 ${active ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}`} 
+                />
                 
-                {/* Label - Smoothly Collapse */}
+                {/* Label */}
                 <span 
                   className={`
                     font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out
@@ -126,16 +138,15 @@ export default function Sidebar({ isOpen, onClose }) {
 
                 {/* Tooltip (Only on Collapsed + Hover) */}
                 {collapsed && (
-                  <div className="absolute left-14 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
+                  <div className="absolute left-14 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
                     {label}
+                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-slate-800"></div>
                   </div>
                 )}
               </Link>
             );
           })}
         </nav>
-        
-
       </div>
     </>
   );

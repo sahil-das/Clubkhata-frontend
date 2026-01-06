@@ -132,7 +132,7 @@ const [frequency, setFrequency] = useState(null);
         <div className="flex items-center gap-2">
            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-white text-indigo-700 border border-indigo-100 shadow-sm">
              <Calendar size={14} className="text-indigo-500" /> 
-             {data?.yearName} Cycle
+             {data?.yearName} 
            </span>
         </div>
       </div>

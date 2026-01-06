@@ -37,13 +37,6 @@ export default function TopBar({ onMenuClick }) {
 
       {/* Right: Actions & Profile */}
       <div className="flex items-center gap-4 md:gap-6">
-        
-        {/* Notification Bell */}
-        <button className="relative text-slate-400 hover:text-indigo-600 transition-colors">
-          <Bell size={20} />
-          {/* Unread Indicator Dot */}
-          <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
-        </button>
 
         {/* User Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
