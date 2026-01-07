@@ -1,7 +1,12 @@
 import axios from "axios";
 
-const BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
+// 🚨 SAFETY FIX: Do not default to localhost in production.
+// This forces you to set VITE_API_URL in your Netlify/Vercel/Docker config.
+const BASE_URL = import.meta.env.VITE_API_URL;
+
+if (!BASE_URL) {
+  console.error("🚨 CRITICAL: VITE_API_URL is not defined!");
+}
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -35,6 +40,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
 
+    // 🛡️ Ensure we always send the Club ID if selected
     if (activeClubId) {
       config.headers["x-club-id"] = activeClubId;
     }
@@ -50,6 +56,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 401 Unauthorized (Token Expired)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -72,7 +79,6 @@ api.interceptors.response.use(
       }
 
       try {
-        // 🔑 MATCHES YOUR BACKEND
         const res = await refreshApi.post("/auth/refresh-token", {
           token: refreshToken,
         });
@@ -82,17 +88,15 @@ api.interceptors.response.use(
           refreshToken: newRefreshToken,
         } = res.data;
 
-        // 🔁 ROTATION (VERY IMPORTANT)
+        // 🔁 Rotate Tokens
         localStorage.setItem("accessToken", newAccessToken);
         localStorage.setItem("refreshToken", newRefreshToken);
 
-        api.defaults.headers.common.Authorization =
-          `Bearer ${newAccessToken}`;
+        api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
 
         processQueue(null, newAccessToken);
 
-        originalRequest.headers.Authorization =
-          `Bearer ${newAccessToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (err) {
         processQueue(err, null);

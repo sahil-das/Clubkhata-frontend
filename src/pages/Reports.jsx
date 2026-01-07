@@ -195,7 +195,7 @@ export default function Reports() {
           amount={summary.closing} 
           icon={IndianRupee} 
           color="indigo" 
-          highlight={true}
+          
         />
       </div>
 
