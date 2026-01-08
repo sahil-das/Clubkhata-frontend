@@ -26,7 +26,7 @@ import Reports from "./pages/Reports";
 import RegisterClub from "./pages/RegisterClub";
 import AuditLogs from "./pages/AuditLogs";
 import Archives from "./pages/Archives";
-
+import NotFound from "./pages/NotFound";
 export default function App() {
   return (
     <AuthProvider>
@@ -77,7 +77,7 @@ export default function App() {
                 <Route path="audit-logs" element={<ProtectedRoute role="admin"><AuditLogs /></ProtectedRoute>} />
               </Route>
 
-              <Route path="*" element={<Navigate to="/login" />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </ToastProvider>

@@ -68,10 +68,12 @@ export default function Sidebar({ isOpen, onClose }) {
              ${collapsed ? "md:justify-center md:px-0 w-full" : "w-full gap-3"}
            `}>
              
-             {/* LOGO */}
-             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 z-10 relative">
-               <span className="font-bold text-white text-xs tracking-tighter">CK</span>
-             </div>
+            {/* LOGO */}
+            <img 
+              src="/logo.png" 
+              alt="Club Logo" 
+              className="w-8 h-8 rounded-lg object-contain bg-white shadow-lg shadow-indigo-100 z-10 relative border border-slate-100" 
+            />
 
              {/* TEXT */}
              {/* FIX 3: Force text to be visible on mobile (w-40 opacity-100) even if collapsed is true */}

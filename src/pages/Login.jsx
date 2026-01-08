@@ -84,14 +84,17 @@ export default function Login() {
         {/* BRANDING */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-lg shadow-slate-200/50 mb-6 ring-1 ring-slate-100">
-             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-inner">
-                <span className="font-bold text-lg tracking-tighter">CK</span>
-             </div>
+              {/* 👇 REPLACED THE 'CK' BOX WITH IMAGE TAG 👇 */}
+              <img 
+                src="/logo.png"  // 👈 Make sure 'logo.png' is in your public folder
+                alt="ClubKhata Logo" 
+                className="w-12 h-12 object-contain" 
+              />
           </div>
+          
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome back</h1>
           <p className="text-slate-500 mt-2 text-sm">Enter your System ID to access ClubKhata.</p>
         </div>
-
         {/* LOGIN CARD */}
         <Card className="shadow-2xl shadow-slate-200/60 border-slate-100 p-6 md:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">

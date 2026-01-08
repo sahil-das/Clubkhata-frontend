@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import api from "../api/axios";
+import { useToast } from "../context/ToastContext";
 import { Loader2, Calendar, Coins, Settings, X } from "lucide-react";
 
 export default function CreateYearModal({ onSuccess, onClose }) {
@@ -14,6 +15,7 @@ export default function CreateYearModal({ onSuccess, onClose }) {
   });
   
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
   const frequency = watch("frequency");
 
   // ✅ Auto-set installments when frequency changes
@@ -59,7 +61,7 @@ const onSubmit = async (data) => {
     if (onSuccess) onSuccess();
   } catch (err) {
     console.error(err);
-    alert(err.response?.data?.message || "Failed to create year");
+    toast.error(err.response?.data?.message || "Failed to create year");
   } finally {
     setLoading(false);
   }

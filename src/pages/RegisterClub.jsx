@@ -75,9 +75,16 @@ export default function RegisterClub() {
 
           <div className="relative z-20">
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-700 font-bold text-xl shadow-lg">
-                CK
+              
+              {/* 👇 LOGO IMAGE REPLACEMENT */}
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg p-1.5">
+                 <img 
+                   src="/logo.png" 
+                   alt="ClubKhata Logo" 
+                   className="w-full h-full object-contain" 
+                 />
               </div>
+
               <span className="text-2xl font-bold tracking-tight">ClubKhata</span>
             </div>
             

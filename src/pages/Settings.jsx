@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import api from "../api/axios"; // Keep for finance summary check
-import { fetchActiveYear, createYear, updateYear, closeYear } from "../api/years"; // 👈 New API
+import api from "../api/axios"; 
+import { fetchActiveYear, createYear, updateYear, closeYear } from "../api/years";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext"; 
 import { 
-  Save, AlertTriangle, CheckCircle, PlusCircle, Lock, Calculator, Calendar, 
-  Loader2, Edit3, X, Clock, Coins, ShieldAlert, Power, RefreshCw, Info // 👈 Added Info
+  Save, CheckCircle, PlusCircle, Lock, Calendar, 
+  Loader2, Edit3, X, Clock, Coins, ShieldAlert, Power, Info 
 } from "lucide-react";
-import { clsx } from "clsx";
 
 // Design System
 import { Button } from "../components/ui/Button";
@@ -52,15 +51,16 @@ export default function Settings() {
       const res = await fetchActiveYear();
       const d = res.data.data;
       
-      // 🟢 FIX: Check specifically for SUBSCRIPTIONS, not total income.
-      // This prevents Donations from locking the Subscription Frequency.
-      const financeRes = await api.get("/finance/summary");
-      const subscriptionIncome = financeRes.data.data?.breakdown?.subscriptions || 0;
-
+      // ✅ FIX: Explicitly handle "No Data" (d is null) inside the try block
       if (d) {
         setNoActiveCycle(false);
         setActiveYearId(d._id);
-        setHasExistingPayments(subscriptionIncome > 0); // 👈 Only true if subscriptions exist
+        
+        // Check for existing payments to lock critical fields
+        const financeRes = await api.get("/finance/summary");
+        const subscriptionIncome = financeRes.data.data?.breakdown?.subscriptions || 0;
+        setHasExistingPayments(subscriptionIncome > 0); 
+        
         setIsEditing(false);
         
         setFormData({
@@ -72,15 +72,28 @@ export default function Settings() {
           totalInstallments: d.totalInstallments || 52,
           openingBalance: d.openingBalance || 0,
         });
+      } else {
+        // ✅ API returned 200 OK but null data -> Switch to Setup Mode
+        handleNoActiveYear();
       }
     } catch (err) {
-      setNoActiveCycle(true);
-      setIsEditing(true); 
-      const today = new Date().toISOString().split('T')[0];
-      setFormData(prev => ({ ...prev, startDate: today, name: `New Year ${new Date().getFullYear()}` }));
+      // ✅ API Error (404/500) -> Switch to Setup Mode
+      handleNoActiveYear();
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNoActiveYear = () => {
+      setNoActiveCycle(true);
+      setIsEditing(true); 
+      const today = new Date().toISOString().split('T')[0];
+      setFormData(prev => ({ 
+          ...prev, 
+          startDate: today, 
+          name: `New Year ${new Date().getFullYear()}`,
+          openingBalance: 0 
+      }));
   };
 
   /* ================= HANDLERS ================= */
@@ -106,7 +119,6 @@ export default function Settings() {
       if (noActiveCycle) {
         await createYear(formData);
         toast.success("New Festival Year Started Successfully!");
-        // Reload to refresh all global contexts (Year, Finance, etc)
         setTimeout(() => window.location.reload(), 1500);
       } else {
         await updateYear(activeYearId, formData);
@@ -124,7 +136,6 @@ export default function Settings() {
     try {
       await closeYear(activeYearId);
       toast.success("Financial Year Closed & Archived.");
-      // Reload to force the app into "No Active Year" state
       setTimeout(() => window.location.reload(), 1500);
     } catch (err) {
       toast.error("Failed to close year. Please try again.");
@@ -328,7 +339,6 @@ export default function Settings() {
                                     <Info size={14} className="text-amber-500 cursor-help" />
                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] leading-tight rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 text-center font-medium">
                                             To change frequency, you must remove all existing subscription payments first.
-                                            {/* Little Triangle Arrow */}
                                             <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
                                     </div>
                                 </div>
