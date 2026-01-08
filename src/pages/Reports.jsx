@@ -8,12 +8,8 @@ import {
 import { 
   TrendingUp, TrendingDown, Wallet, IndianRupee, PieChart as PieIcon, Download, Loader2, AlertCircle 
 } from "lucide-react";
-<<<<<<< HEAD
-import { exportFinancialReportPDF } from "../utils/exportFinancialReportPDF"; 
-=======
 // ✅ UPDATED IMPORT: Using exportFinancePDF for Current Year Snapshot
 import { exportFinancePDF } from "../utils/pdfExport";
->>>>>>> dashboardHome-work
 import { clsx } from "clsx"; 
 
 // Design System
@@ -22,24 +18,9 @@ import { Card } from "../components/ui/Card";
 
 // 🛠 HELPER: Safely convert API Strings ("50.00") or Paisa Integers (5000) to Number (50)
 const parseAmount = (val) => {
-<<<<<<< HEAD
-    if (!val) return 0;
-    // If it's a number and looks like Paisa (e.g., > 1000 without decimal), divide
-    // NOTE: Backend should be sending "50.00" string now, so Number() handles it.
-    if (typeof val === 'number') {
-        // Just in case backend sends raw integer 5000, we check logic
-        // But assuming your latest backend fix, it sends Strings.
-        // If it sends 5000, divide by 100. If 50, keep 50.
-        // Safe bet: The backend sends strings now.
-        return val; 
-    }
-    // If string "50.00", convert to number
-    return Number(val) || 0;
-=======
   if (!val) return 0;
   if (typeof val === 'number') return val; 
   return Number(val) || 0;
->>>>>>> dashboardHome-work
 };
 
 export default function Reports() {
@@ -113,10 +94,6 @@ export default function Reports() {
       const dateMap = {};
       [...pujaData, ...donationData].forEach(item => {
          const date = new Date(item.date || item.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' });
-<<<<<<< HEAD
-         // 🚨 FIX: Ensure addition is numeric
-=======
->>>>>>> dashboardHome-work
          dateMap[date] = (dateMap[date] || 0) + parseAmount(item.amount);
       });
 
@@ -134,26 +111,6 @@ export default function Reports() {
     }
   };
 
-<<<<<<< HEAD
-  const handleExport = () => {
-    exportFinancialReportPDF({
-      clubName: activeClub?.clubName || "Club Committee",
-      year: cycle?.name || new Date().getFullYear(),
-      openingBalance: summary.opening,
-      totalIncome: summary.collected,
-      totalExpense: summary.expenses,
-      netBalance: summary.closing,
-      incomeSources: {
-        weekly: 0, 
-        puja: contributions.find(c => c.name === "Puja Chanda")?.value || 0,
-        donation: contributions.find(c => c.name === "Donations")?.value || 0
-      },
-      details: {
-        expenses: expenses.filter(e => e.status === "approved"),
-        donations: donationList,
-        puja: pujaList
-      }
-=======
   // ✅ UPDATED EXPORT HANDLER (Uses exportFinancePDF)
   const handleExport = () => {
     exportFinancePDF({
@@ -170,7 +127,6 @@ export default function Reports() {
       })),
       // Pass all approved expenses for the detailed table in the snapshot
       expenses: expenses.filter(e => e.status === "approved")
->>>>>>> dashboardHome-work
     });
   };
 
