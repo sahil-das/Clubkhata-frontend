@@ -1,28 +1,24 @@
-import { useState, useEffect } from "react"; // 👈 Added useEffect
+import { useState, useEffect } from "react"; 
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLoading } from "../loading/LoadingContext"; // 👈 Import Global Loader
 import { User, Lock, ArrowRight, Eye, EyeOff, AlertCircle } from "lucide-react";
 
-// Components
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-// 👇 CRITICAL FIX: Keep this lowercase "card" to prevent Linux crashes
 import { Card } from "../components/ui/Card"; 
 
 export default function Login() {
   const [input, setInput] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // 👇 Extract 'user' and 'loading' from AuthContext
   const { login, selectClub, user, loading: authLoading } = useAuth(); 
+  const { showLoader, hideLoader } = useLoading(); // 👈 Destructure hooks
   const navigate = useNavigate();
 
-  // ✅ NEW: Redirect to Dashboard if already logged in
   useEffect(() => {
-    // If the user exists and AuthContext has finished loading...
     if (user && !authLoading) {
       navigate("/", { replace: true });
     }
@@ -30,11 +26,14 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    // 1. Show Blocking Overlay immediately
+    showLoader(true); 
     setError(null);
 
     try {
-      const result = await login(input, password);
+      // 2. Pass flag to SKIP NProgress bar
+      const result = await login(input, password, { skipGlobalLoading: true });
+      
       const clubs = (result && result.clubs) || [];
       if (clubs && clubs.length === 1) selectClub(clubs[0]);
       navigate("/");
@@ -45,31 +44,13 @@ export default function Login() {
         const serverMessage = data.message || data.error || null;
 
         switch (status) {
-          case 400:
-            setError(serverMessage || "Bad request. Please check your input.");
-            break;
-          case 401:
-            // This is "Wrong Password". 
-            // Since we are inside the page, this will just show the error 
-            // and NOT trigger the infinite reload loop.
-            setError(serverMessage || "Invalid credentials. Please double-check your ID and password.");
-            break;
-          case 403:
-            setError(serverMessage || "Access forbidden. Your account may be disabled.");
-            break;
-          case 404:
-            setError(serverMessage || "Account not found. Please register first.");
-            break;
-          case 422:
-            setError(serverMessage || "Validation failed. Please check the form fields.");
-            break;
-          case 429:
-            setError(serverMessage || "Too many attempts. Please try again later.");
-            break;
-          case 500:
-          default:
-            setError(serverMessage || "Server error. Please try again later.");
-            break;
+          case 400: setError(serverMessage || "Bad request. Please check your input."); break;
+          case 401: setError(serverMessage || "Invalid credentials. Please double-check your ID and password."); break;
+          case 403: setError(serverMessage || "Access forbidden. Your account may be disabled."); break;
+          case 404: setError(serverMessage || "Account not found. Please register first."); break;
+          case 422: setError(serverMessage || "Validation failed. Please check the form fields."); break;
+          case 429: setError(serverMessage || "Too many attempts. Please try again later."); break;
+          default: setError(serverMessage || "Server error. Please try again later."); break;
         }
       } else if (err?.request) {
         setError("No response from server. Check your network connection.");
@@ -77,11 +58,11 @@ export default function Login() {
         setError(err.message || "An unknown error occurred.");
       }
     } finally {
-      setLoading(false);
+      // 3. Hide Blocking Overlay
+      hideLoader(); 
     }
   };
 
-  // Optional: Prevent the form from flashing briefly while checking auth status
   if (authLoading) return null; 
 
   return (
@@ -138,7 +119,7 @@ export default function Login() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full py-3 text-base shadow-lg shadow-indigo-200 hover:shadow-indigo-300" isLoading={loading} rightIcon={<ArrowRight size={18} />}>
+            <Button type="submit" className="w-full py-3 text-base shadow-lg shadow-indigo-200 hover:shadow-indigo-300" rightIcon={<ArrowRight size={18} />}>
               Sign In
             </Button>
           </form>
