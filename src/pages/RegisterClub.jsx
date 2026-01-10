@@ -5,7 +5,7 @@ import api from "../api/axios";
 import { useToast } from "../context/ToastContext"; 
 import { 
   Building2, User, Mail, Lock, Phone, ArrowRight, Loader2, 
-  Hash, CheckCircle2, ShieldCheck, AtSign, Copy 
+  Hash, CheckCircle2, ShieldCheck, AtSign, Copy, Eye, EyeOff
 } from "lucide-react";
 
 // Components
@@ -20,6 +20,7 @@ export default function RegisterClub() {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
   const [successData, setSuccessData] = useState(null); // Store generated credentials
+  const [showPassword, setShowPassword] = useState(false);
 
   // Watch fields for live preview
   const watchUsername = watch("username", "");
@@ -263,10 +264,15 @@ export default function RegisterClub() {
                     <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-500 ml-1">Password</label>
                     <Input 
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         icon={Lock}
                         {...register("password", { required: true, minLength: 6 })}
+                        suffix={
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="hover:text-slate-600 text-slate-400 transition-colors focus:outline-none" tabIndex={-1}>
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        }
                     />
                     </div>
                 </div>

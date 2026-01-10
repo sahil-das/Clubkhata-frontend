@@ -67,7 +67,7 @@ export default function App() {
                   <Route path="profile" element={<UserProfile />} />
 
                   {/* AVAILABLE TO EVERYONE */}
-                  <Route path="puja-contributions" element={<PujaContributions />} />
+                  <Route path="memebers-contribution" element={<PujaContributions />} />
                   <Route path="collections" element={<CollectionsOverview />} />
                   <Route path="donations" element={<Donations />} />
                   <Route path="expenses" element={<Expenses />} />

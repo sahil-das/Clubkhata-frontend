@@ -4,7 +4,7 @@ import { useToast } from "../context/ToastContext"; // 👈 Toast
 import api from "../api/axios"; 
 import { 
   IndianRupee, Wallet, Calendar, User, Mail, Phone, Lock, 
-  Camera, Edit3, AtSign, Save, X
+  Camera, Edit3, AtSign, Save, X, Eye, EyeOff
 } from "lucide-react";
 import { Button } from "../components/ui/Button"; // 👈 UI Component
 
@@ -21,6 +21,9 @@ export default function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ name: "", phone: "", personalEmail: "" });
   const [passwordData, setPasswordData] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -141,19 +144,23 @@ export default function UserProfile() {
              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Current Cycle</h3>
              <div className="space-y-4">
                 <div className="flex justify-between items-center text-sm">
-                   <span className="text-slate-500">Festival Chanda</span>
+                   <span className="text-slate-500">Festival Fee</span>
                    <span className="font-bold text-slate-900 font-mono">₹{stats?.festivalChandaTotal || 0}</span>
                 </div>
                 {stats?.frequency !== 'none' && (
                   <div className="flex justify-between items-center text-sm">
-                     <span className="text-slate-500">Subscription Paid</span>
+                     <span className="text-slate-500">
+                       {stats?.frequency === 'weekly' ? 'Weekly Contribution' : stats?.frequency === 'monthly' ? 'Monthly Contribution' : 'Subscription Paid'}
+                     </span>
                      <span className="font-bold text-emerald-600 font-mono">₹{stats?.totalPaid || 0}</span>
                   </div>
                 )}
-                <div className="pt-3 border-t border-slate-50 flex justify-between items-center text-sm">
-                   <span className="text-slate-500">Pending Dues</span>
-                   <span className="font-bold text-rose-600 font-mono">₹{stats?.totalDue || 0}</span>
-                </div>
+                {stats?.frequency !== 'none' && (
+                  <div className="pt-3 border-t border-slate-50 flex justify-between items-center text-sm">
+                     <span className="text-slate-500">Pending Dues</span>
+                     <span className="font-bold text-rose-600 font-mono">₹{stats?.totalDue || 0}</span>
+                  </div>
+                )}
              </div>
           </div>
         </div>
@@ -193,7 +200,9 @@ export default function UserProfile() {
                   <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4">
                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Wallet size={24} /></div>
                     <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase">Subscription Paid</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase">
+                        {stats?.frequency === 'weekly' ? 'Weekly Contribution' : stats?.frequency === 'monthly' ? 'Monthly Contribution' : 'Subscription Paid'}
+                      </p>
                       <h3 className="text-2xl font-bold text-slate-900 mt-1 font-mono">₹{stats?.totalPaid || 0}</h3>
                     </div>
                   </div>
@@ -303,31 +312,61 @@ export default function UserProfile() {
                <form onSubmit={handlePasswordUpdate} className="max-w-lg space-y-4">
                   <div>
                     <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Current Password</label>
-                    <input 
-                      type="password" required
-                      value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                    />
+                    <div className="relative">
+                      <input 
+                        type={showCurrent ? "text" : "password"} required
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrent(s => !s)}
+                        className="absolute right-2 top-2.5 text-slate-400 p-1"
+                        aria-label={showCurrent ? "Hide current password" : "Show current password"}
+                      >
+                        {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">New Password</label>
-                      <input 
-                        type="password" required
-                        value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                      />
+                      <div className="relative">
+                        <input 
+                          type={showNew ? "text" : "password"} required
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNew(s => !s)}
+                          className="absolute right-2 top-2.5 text-slate-400 p-1"
+                          aria-label={showNew ? "Hide new password" : "Show new password"}
+                        >
+                          {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Confirm</label>
-                      <input 
-                        type="password" required
-                        value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                      />
+                      <div className="relative">
+                        <input 
+                          type={showConfirm ? "text" : "password"} required
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirm(s => !s)}
+                          className="absolute right-2 top-2.5 text-slate-400 p-1"
+                          aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
+                        >
+                          {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="flex justify-end pt-2">
