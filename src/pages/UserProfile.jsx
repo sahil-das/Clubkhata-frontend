@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext"; // 👈 Toast
-import api from "../api/axios"; 
+import { getProfile, updateProfile, changePassword, getMyStats } from "../api/User"; 
 import { 
   IndianRupee, Wallet, Calendar, User, Mail, Phone, Lock, 
   Camera, Edit3, AtSign, Save, X, Eye, EyeOff
@@ -32,10 +32,10 @@ export default function UserProfile() {
   const fetchData = async () => {
     try {
       const [profileRes, statsRes] = await Promise.all([
-         api.get("/auth/me"),
-         api.get("/members/my-stats")
+        getProfile(),
+        getMyStats()
       ]);
-      
+
       const userData = profileRes.data.user; 
       setUser(userData);
       setFormData({
@@ -58,7 +58,7 @@ export default function UserProfile() {
   const handleInfoUpdate = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await api.put("/auth/profile", formData);
+      const { data } = await updateProfile(formData);
       const updatedUser = data.data;
 
       setUser(updatedUser);
@@ -79,14 +79,60 @@ export default function UserProfile() {
     }
 
     try {
-      await api.put("/auth/change-password", {
-        oldPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      });
+      await changePassword(passwordData.currentPassword, passwordData.newPassword);
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       toast.success("Password changed successfully");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Password update failed");
+      // Network / no response
+      if (!error.response) {
+        console.error("Password update network error:", error);
+        toast.error("Network error: please check your connection and try again");
+        return;
+      }
+
+      const { status, data } = error.response;
+
+      // Unauthorized - likely wrong current password
+      if (status === 401) {
+        toast.error(data?.message || "Current password is incorrect");
+        return;
+      }
+
+      // Bad Request - validation errors
+      if (status === 400) {
+        // Handle different shapes: { message }, { errors: { field: [msg] } }, or { errors: [msg] }
+        if (data?.errors) {
+          const msgs = [];
+          if (Array.isArray(data.errors)) {
+            data.errors.forEach((it) => {
+              if (typeof it === 'string') msgs.push(it);
+              else if (it?.msg) msgs.push(it.msg);
+            });
+          } else if (typeof data.errors === 'object') {
+            Object.values(data.errors).forEach((v) => {
+              if (Array.isArray(v)) msgs.push(...v.map(item => (typeof item === 'string' ? item : item?.msg || JSON.stringify(item))));
+              else if (typeof v === 'string') msgs.push(v);
+            });
+          }
+
+          const final = msgs.filter(Boolean).join(' • ');
+          toast.error(final || data?.message || 'Invalid password input');
+          return;
+        }
+
+        toast.error(data?.message || 'Invalid password input');
+        return;
+      }
+
+      // Server errors
+      if (status >= 500) {
+        console.error('Server error changing password:', data || error);
+        toast.error('Server error. Please try again later.');
+        return;
+      }
+
+      // Fallback
+      toast.error(data?.message || 'Password update failed');
     }
   };
 
