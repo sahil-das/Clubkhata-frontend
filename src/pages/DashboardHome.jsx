@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -39,6 +40,7 @@ export default function DashboardHome() {
   }, []);
 
   const [frequency, setFrequency] = useState(null); 
+  const navigate = useNavigate();
 
   const fetchSummary = async () => {
     try {
@@ -247,7 +249,8 @@ export default function DashboardHome() {
                   <BreakdownCard 
                     label={frequency === 'weekly' ? 'Weekly collection' : 'Monthly collection'} 
                     amount={data?.breakdown?.subscriptions} 
-                    color="indigo" 
+                    color="indigo"
+                    onClick={() => navigate('/collections')}
                   />
                 )}
 
@@ -255,14 +258,16 @@ export default function DashboardHome() {
                 <BreakdownCard 
                   label="Donations" 
                   amount={data?.breakdown?.donations} 
-                  color="amber" 
+                  color="amber"
+                  onClick={() => navigate('/donations')}
                 />
 
                 {/* 3. Member Fees */}
                 <BreakdownCard 
                   label="Member's Contribution" 
                   amount={data?.breakdown?.memberFees} 
-                  color="emerald" 
+                  color="emerald"
+                  onClick={() => navigate('/members-contribution')}
                 />
              </div>
            </div>
@@ -346,15 +351,23 @@ function QuickActionBtn({ icon, label, sub, color, onClick }) {
   );
 }
 
-function BreakdownCard({ label, amount, color }) {
+function BreakdownCard({ label, amount, color, onClick }) {
   const colors = {
     indigo: "border-l-indigo-500",
     amber: "border-l-amber-500",
     emerald: "border-l-emerald-500"
   };
 
+  const clickable = typeof onClick === 'function';
+
   return (
-    <div className={`bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between border-l-4 ${colors[color]}`}>
+    <div
+      onClick={onClick}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={(e) => { if (clickable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
+      className={`bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between border-l-4 ${colors[color]} ${clickable ? 'cursor-pointer hover:shadow-md hover:bg-slate-50 hover:-translate-y-1 transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-200' : 'transition'}`}
+    >
       <span className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">
         {label}
       </span>
