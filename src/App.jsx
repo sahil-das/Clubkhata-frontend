@@ -1,5 +1,5 @@
 import React, { Suspense } from "react"; 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Providers & Components
 import { AuthProvider } from "./context/AuthContext";
@@ -8,7 +8,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RequireSubscription from "./components/RequireSubscription";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ToastProvider } from "./context/ToastContext";
-import LoadingOverlay from "./loading/LoadingOverlay";
+import LoadingOverlay from "./loading/LoadingOverlay"; 
 
 // Lazy Load Pages
 const Login = React.lazy(() => import("./pages/Login"));
@@ -31,8 +31,8 @@ const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 // Fallback for Suspense
 const PageLoader = () => (
-  <div className="flex h-screen w-full items-center justify-center bg-[var(--bg-app)]">
-    <div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full" />
+  <div className="flex h-screen w-full items-center justify-center bg-white dark:bg-slate-950">
+    <div className="animate-spin h-8 w-8 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full" />
   </div>
 );
 

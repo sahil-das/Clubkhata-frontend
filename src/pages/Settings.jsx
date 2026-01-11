@@ -39,7 +39,6 @@ export default function Settings() {
     openingBalance: 0,
   });
 
-  /* ================= LOAD SETTINGS ================= */
   useEffect(() => {
     loadSettings();
   }, []);
@@ -55,14 +54,9 @@ export default function Settings() {
         setNoActiveCycle(false);
         setActiveYearId(d._id);
         
-        // Check for existing payments to lock critical fields
-        try {
-            const financeRes = await api.get("/finance/summary");
-            const subscriptionIncome = financeRes.data.data?.breakdown?.subscriptions || 0;
-            setHasExistingPayments(subscriptionIncome > 0); 
-        } catch (e) {
-            console.warn("Failed to check existing payments");
-        }
+        const financeRes = await api.get("/finance/summary");
+        const subscriptionIncome = financeRes.data.data?.breakdown?.subscriptions || 0;
+        setHasExistingPayments(subscriptionIncome > 0); 
         
         setIsEditing(false);
         
@@ -97,7 +91,6 @@ export default function Settings() {
       }));
   };
 
-  /* ================= HANDLERS ================= */
   const handleFrequencyChange = (newFreq) => {
     let newInstallments = formData.totalInstallments;
     if (newFreq === 'weekly') newInstallments = 52;
@@ -156,7 +149,7 @@ export default function Settings() {
 
   const totalExpected = formData.amountPerInstallment * formData.totalInstallments;
 
-  if (loading && !formData.name) return <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-primary-600"/></div>;
+  if (loading && !formData.name) return <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600 dark:text-indigo-400"/></div>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
@@ -164,8 +157,8 @@ export default function Settings() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--text-main)] tracking-tight">System Settings</h2>
-          <p className="text-[var(--text-muted)] text-sm">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">System Settings</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
             {noActiveCycle ? "Setup a new financial year." : "Manage active cycle configuration."}
           </p>
         </div>
@@ -185,61 +178,61 @@ export default function Settings() {
       {!isEditing && !noActiveCycle && (
         <div className="space-y-6">
             {/* Main Info Card */}
-            <Card className="overflow-hidden border-[var(--border-color)]" noPadding>
-                <div className="bg-slate-50/50 dark:bg-slate-800/50 px-8 py-6 border-b border-[var(--border-color)]">
+            <Card className="overflow-hidden border-slate-200 dark:border-slate-800" noPadding>
+                <div className="bg-slate-50/50 dark:bg-slate-800/50 px-8 py-6 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-3 mb-2">
                         <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-emerald-200 dark:border-emerald-900/50 uppercase tracking-wider flex items-center gap-1">
                           <CheckCircle size={10} /> Active Year
                         </span>
-                        <span className="text-[var(--text-muted)] text-sm font-medium flex items-center gap-1">
+                        <span className="text-slate-400 dark:text-slate-500 text-sm font-medium flex items-center gap-1">
                           <Clock size={14}/> {new Date(formData.startDate).getFullYear()}
                         </span>
                     </div>
-                    <h1 className="text-3xl font-bold text-[var(--text-main)] tracking-tight">{formData.name}</h1>
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{formData.name}</h1>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2">
-                    <div className="p-8 space-y-8 border-r border-[var(--border-color)]">
+                    <div className="p-8 space-y-8 border-r border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
                           <div>
-                            <label className="text-xs font-bold text-[var(--text-muted)] uppercase block mb-1">Duration</label>
-                            <div className="flex items-center gap-2 text-[var(--text-main)] font-medium bg-slate-50 dark:bg-slate-800 inline-flex px-3 py-1.5 rounded-lg border border-[var(--border-color)]">
-                                <Calendar size={16} className="text-[var(--text-muted)]"/>
+                            <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase block mb-1">Duration</label>
+                            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-medium bg-slate-50 dark:bg-slate-800 inline-flex px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700">
+                                <Calendar size={16} className="text-slate-400 dark:text-slate-500"/>
                                 {new Date(formData.startDate).toLocaleDateString()} 
-                                <span className="text-[var(--text-muted)]">➝</span>
+                                <span className="text-slate-300 dark:text-slate-600">➝</span>
                                 {new Date(formData.endDate).toLocaleDateString()}
                             </div>
                         </div>
 
                         <div>
-                            <label className="text-xs font-bold text-[var(--text-muted)] uppercase block mb-1">Collection Rule</label>
-                            <p className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
+                            <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase block mb-1">Collection Rule</label>
+                            <p className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                                 {getFrequencyLabel(formData.subscriptionFrequency)}
                             </p>
                             {formData.subscriptionFrequency !== 'none' && (
-                                <p className="text-sm text-[var(--text-muted)] mt-1">
-                                {formData.totalInstallments} installments of <span className="text-primary-600 dark:text-primary-400 font-bold">₹{formData.amountPerInstallment}</span> each.
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                {formData.totalInstallments} installments of <span className="text-indigo-600 dark:text-indigo-400 font-bold">₹{formData.amountPerInstallment}</span> each.
                                 </p>
                             )}
                         </div>
                     </div>
 
-                    <div className="p-8 bg-slate-50/30 dark:bg-slate-800/30 flex flex-col justify-center items-center text-center">
+                    <div className="p-8 bg-slate-50/30 dark:bg-slate-800/30 flex flex-col justify-center items-center text-center border-t md:border-t-0 border-slate-100 dark:border-slate-800">
                         {formData.subscriptionFrequency !== 'none' ? (
                             <>
-                                <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm ring-1 ring-primary-100 dark:ring-primary-800">
+                                <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm ring-1 ring-indigo-100 dark:ring-indigo-900/30">
                                     <Coins size={32} />
                                 </div>
-                                <p className="text-xs font-bold text-[var(--text-muted)] uppercase mb-1">Projected Revenue</p>
-                                <p className="text-3xl font-bold text-[var(--text-main)] tracking-tight">₹ {totalExpected.toLocaleString()}</p>
-                                <p className="text-xs text-[var(--text-muted)] mt-1">Target per member</p>
+                                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Projected Revenue</p>
+                                <p className="text-3xl font-bold text-slate-800 dark:text-white tracking-tight">₹ {totalExpected.toLocaleString()}</p>
+                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Target per member</p>
                             </>
                         ) : (
                             <div className="text-center">
-                                <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm mx-auto">
+                                <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm mx-auto">
                                     <Coins size={32} />
                                 </div>
-                                <p className="text-sm font-medium text-[var(--text-main)]">Donation Only Mode</p>
-                                <p className="text-xs text-[var(--text-muted)] italic mt-1">No recurring revenue projection.</p>
+                                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Donation Only Mode</p>
+                                <p className="text-xs text-slate-400 dark:text-slate-500 italic mt-1">No recurring revenue projection.</p>
                             </div>
                         )}
                     </div>
@@ -250,7 +243,7 @@ export default function Settings() {
             {activeClub?.role === "admin" && (
                 <Card className="border-red-100 dark:border-red-900/30 shadow-none overflow-hidden" noPadding>
                       <div className="bg-red-50/50 dark:bg-red-900/10 p-6 border-b border-red-100 dark:border-red-900/30 flex items-start gap-4">
-                        <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl shrink-0">
+                        <div className="p-3 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl shrink-0">
                             <ShieldAlert size={24} />
                         </div>
                         <div>
@@ -260,7 +253,7 @@ export default function Settings() {
                             </p>
                         </div>
                       </div>
-                      <div className="p-6 bg-red-50/20 dark:bg-red-900/5">
+                      <div className="p-6 bg-red-50/20 dark:bg-red-950/20">
                         <Button 
                             variant="danger" 
                             onClick={() => setShowCloseConfirm(true)}
@@ -276,15 +269,15 @@ export default function Settings() {
 
       {/* ==================== EDIT/CREATE FORM ==================== */}
       {(isEditing || noActiveCycle) && (
-        <Card className={noActiveCycle ? "border-primary-200 dark:border-primary-800 shadow-lg" : "border-[var(--border-color)]"}>
+        <Card className={noActiveCycle ? "border-indigo-200 dark:border-indigo-900 shadow-lg" : "border-slate-200 dark:border-slate-800"}>
           
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-[var(--border-color)]">
-            <h3 className="font-bold text-lg flex items-center gap-2 text-[var(--text-main)]">
-              {noActiveCycle ? <PlusCircle size={20} className="text-primary-600 dark:text-primary-400"/> : <Edit3 size={20} className="text-[var(--text-muted)]"/>}
+          <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="font-bold text-lg flex items-center gap-2 text-slate-800 dark:text-slate-100">
+              {noActiveCycle ? <PlusCircle size={20} className="text-indigo-600 dark:text-indigo-400"/> : <Edit3 size={20} className="text-slate-500 dark:text-slate-400"/>}
               {noActiveCycle ? "Setup New Year" : "Edit Configuration"}
             </h3>
             {!noActiveCycle && (
-              <button onClick={() => setIsEditing(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition">
+              <button onClick={() => setIsEditing(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition">
                 <X size={20}/>
               </button>
             )}
@@ -301,7 +294,6 @@ export default function Settings() {
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         placeholder="e.g. Durga Puja 2026"
                         required
-                        className="bg-[var(--bg-input)]"
                     />
                 </div>
                 <div>
@@ -311,7 +303,6 @@ export default function Settings() {
                         value={formData.startDate}
                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                         required
-                        className="bg-[var(--bg-input)]"
                     />
                 </div>
                 <div>
@@ -322,17 +313,16 @@ export default function Settings() {
                         value={formData.endDate}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                         required
-                        className="bg-[var(--bg-input)]"
                     />
                 </div>
             </div>
 
-            <div className="h-px bg-[var(--border-color)] my-4" />
+            <div className="h-px bg-slate-100 dark:bg-slate-800 my-4" />
 
             {/* Rules */}
             <div className="space-y-4">
-                <h4 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
-                    <Lock size={14} className="text-[var(--text-muted)]"/> Financial Rules
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <Lock size={14} className="text-slate-400 dark:text-slate-500"/> Financial Rules
                 </h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -340,15 +330,15 @@ export default function Settings() {
                     {/* FREQUENCY INPUT with INFO */}
                     <div>
                         <div className="flex items-center gap-2 mb-1.5 ml-1">
-                            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase">Frequency</label>
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Frequency</label>
                             
                             {/* ℹ️ INFO TOOLTIP */}
                             {hasExistingPayments && !noActiveCycle && (
                                 <div className="group relative flex items-center">
                                     <Info size={14} className="text-amber-500 cursor-help" />
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] leading-tight rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 text-center font-medium">
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 dark:bg-slate-700 text-white text-[10px] leading-tight rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 text-center font-medium">
                                             To change frequency, you must remove all existing subscription payments first.
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800 dark:border-t-slate-700"></div>
                                     </div>
                                 </div>
                             )}
@@ -358,7 +348,7 @@ export default function Settings() {
                             value={formData.subscriptionFrequency}
                             onChange={(e) => handleFrequencyChange(e.target.value)}
                             disabled={hasExistingPayments && !noActiveCycle}
-                            className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-xl py-3 px-4 outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-[var(--text-muted)] transition-all cursor-pointer disabled:cursor-not-allowed"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-3 px-4 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 transition-all cursor-pointer disabled:cursor-not-allowed"
                         >
                             <option value="weekly">Weekly Collection</option>
                             <option value="monthly">Monthly Collection</option>
@@ -367,7 +357,7 @@ export default function Settings() {
                         
                         {/* Lock Message */}
                         {hasExistingPayments && !noActiveCycle && (
-                            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 ml-1 flex items-center gap-1 font-medium">
+                            <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-1 ml-1 flex items-center gap-1 font-medium">
                                 <Lock size={10} /> Locked due to existing records
                             </p>
                         )}
@@ -382,7 +372,6 @@ export default function Settings() {
                                 onChange={(e) => setFormData({ ...formData, amountPerInstallment: e.target.value })}
                                 icon={Coins}
                                 required
-                                className="bg-[var(--bg-input)]"
                             />
                             
                             {formData.subscriptionFrequency === 'weekly' ? (
@@ -392,12 +381,11 @@ export default function Settings() {
                                     value={formData.totalInstallments}
                                     onChange={(e) => setFormData({ ...formData, totalInstallments: e.target.value })}
                                     required
-                                    className="bg-[var(--bg-input)]"
                                 />
                             ) : (
-                                <div className="bg-slate-50 dark:bg-slate-800 border border-[var(--border-color)] rounded-xl p-3 flex flex-col justify-center">
-                                    <span className="text-xs font-bold text-[var(--text-muted)] uppercase">Duration</span>
-                                    <span className="text-sm font-bold text-[var(--text-main)]">12 Months (Fixed)</span>
+                                <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col justify-center">
+                                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Duration</span>
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">12 Months (Fixed)</span>
                                 </div>
                             )}
                         </>
@@ -407,17 +395,17 @@ export default function Settings() {
 
             {/* Opening Balance (Only for new year) */}
             {noActiveCycle && (
-                <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-100 dark:border-amber-900/20">
                     <Input 
                         type="number"
                         label="Opening Balance (Optional)"
                         value={formData.openingBalance}
                         onChange={(e) => setFormData({ ...formData, openingBalance: e.target.value })}
                         placeholder="0"
-                        className="bg-[var(--bg-input)]"
+                        className="bg-white dark:bg-slate-900"
                         icon={Coins}
                     />
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 ml-1">
+                    <p className="text-xs text-amber-600 dark:text-amber-500 mt-1.5 ml-1">
                         Carry forward funds from the previous year if needed.
                     </p>
                 </div>

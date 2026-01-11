@@ -8,11 +8,11 @@ import "nprogress/nprogress.css";
 import { AuthProvider } from "./context/AuthContext";
 import { YearProvider } from "./context/YearContext";
 import { LoadingProvider } from "./loading/LoadingContext";
-import { ThemeProvider } from "./context/ThemeContext"; // Import ThemeProvider
+import { ThemeProvider } from "./context/ThemeContext"; // 👈 Import ThemeProvider
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ThemeProvider> {/* Add ThemeProvider at the top level */}
+    <ThemeProvider> {/* 👈 Wrap with ThemeProvider */}
       <LoadingProvider>
         <AuthProvider>
           <YearProvider>

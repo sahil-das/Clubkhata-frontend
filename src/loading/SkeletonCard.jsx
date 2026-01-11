@@ -2,8 +2,9 @@ import React from 'react';
 
 export default function SkeletonCard() {
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 shadow-sm relative overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm relative overflow-hidden transition-colors">
       {/* Shimmer Effect */}
+      {/* Adjusted gradient for dark mode to be visible but subtle */}
       <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-100/50 dark:via-slate-800/50 to-transparent"></div>
 
       <div className="flex justify-between items-start">

@@ -7,11 +7,8 @@ export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-full bg-[var(--bg-app)] overflow-hidden transition-colors duration-300">
-      {/* SIDEBAR:
-        - Mobile: Hidden by default, slides in (z-50)
-        - Desktop: Static width, sits in flow
-      */}
+    <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors">
+      {/* SIDEBAR */}
       <Sidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
@@ -24,7 +21,7 @@ export default function Dashboard() {
         <TopBar onMenuClick={() => setIsSidebarOpen(true)} />
 
         {/* PAGE CONTENT */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 relative scroll-smooth custom-scrollbar">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 relative scroll-smooth text-slate-900 dark:text-slate-100">
           <div className="max-w-7xl mx-auto w-full pb-20">
              <Outlet />
           </div>

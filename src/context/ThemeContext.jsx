@@ -1,9 +1,9 @@
-import { createContext, useContext, useLayoutEffect, useState } from "react";
+import { createContext, useContext, useState, useLayoutEffect, useEffect } from "react";
 
 const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
-  // 1. Initialize state: Check localStorage, fallback to 'system'
+  // Initialize state
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("theme") || "system";
@@ -11,43 +11,54 @@ export function ThemeProvider({ children }) {
     return "system";
   });
 
-  // 2. Use useLayoutEffect to prevent "flash of light mode" on refresh
+  // Use useLayoutEffect to prevent flashing (FOUC)
   useLayoutEffect(() => {
     const root = window.document.documentElement;
-    const systemQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-    function applyTheme() {
-      // Remove both classes first to avoid conflicts
+    function applyTheme(targetTheme) {
+      // Clean classes
       root.classList.remove("light", "dark");
 
-      if (theme === "system") {
-        const systemTheme = systemQuery.matches ? "dark" : "light";
-        root.classList.add(systemTheme);
-      } else {
-        root.classList.add(theme);
+      if (targetTheme === "dark") {
+        root.classList.add("dark");
+      } else if (targetTheme === "light") {
+        root.classList.add("light");
+      } else if (targetTheme === "system") {
+        // Check system preference immediately
+        const systemPref = window.matchMedia("(prefers-color-scheme: dark)");
+        if (systemPref.matches) {
+          root.classList.add("dark");
+        } else {
+          root.classList.add("light");
+        }
       }
     }
 
-    applyTheme();
-    localStorage.setItem("theme", theme);
+    applyTheme(theme);
 
-    // 3. Listen for OS changes ONLY when in 'system' mode
+    // Listen for system changes ONLY if theme is 'system'
     if (theme === "system") {
-      systemQuery.addEventListener("change", applyTheme);
+      const systemPref = window.matchMedia("(prefers-color-scheme: dark)");
+      const listener = (e) => {
+        root.classList.remove("light", "dark");
+        root.classList.add(e.matches ? "dark" : "light");
+      };
+      systemPref.addEventListener("change", listener);
+      return () => systemPref.removeEventListener("change", listener);
     }
+  }, [theme]);
 
-    return () => {
-      systemQuery.removeEventListener("change", applyTheme);
-    };
+  // Persist preference
+  useEffect(() => {
+    localStorage.setItem("theme", theme);
   }, [theme]);
 
   const value = {
     theme,
     setTheme,
-    // Helper: returns true if the resolved theme is actually dark
     isDark: 
       theme === "dark" || 
-      (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+      (theme === "system" && typeof window !== 'undefined' && window.matchMedia("(prefers-color-scheme: dark)").matches)
   };
 
   return (
@@ -58,7 +69,5 @@ export function ThemeProvider({ children }) {
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) throw new Error("useTheme must be used within a ThemeProvider");
-  return context;
+  return useContext(ThemeContext);
 }

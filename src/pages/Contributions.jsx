@@ -8,11 +8,12 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 
+// Design System
 import { Button } from "../components/ui/Button";
 import { exportWeeklyAllMembersPDF } from "../utils/exportWeeklyAllMembersPDF";
 
 export default function Contributions() {
-  const { activeClub } = useAuth(); 
+  const { user, activeClub } = useAuth(); 
   const { fetchCentralFund } = useFinance();
 
   const [members, setMembers] = useState([]);
@@ -21,7 +22,6 @@ export default function Contributions() {
   const [expanded, setExpanded] = useState({});
   const [processing, setProcessing] = useState(null);
 
-  /* ================= LOAD DATA ================= */
   useEffect(() => {
     loadData();
   }, []);
@@ -69,8 +69,6 @@ export default function Contributions() {
     }
   };
 
-  /* ================= ACTIONS ================= */
-  
   const totalCollected = members.reduce((sum, m) => {
     return sum + Number(m.subscription?.totalPaid || 0);
   }, 0);
@@ -157,7 +155,6 @@ export default function Contributions() {
     return `W${num}`;
   };
 
-  /* ================= RENDER ================= */
   if (loading) return <SkeletonLoader />;
   if (!cycle) return <NoCycleState isAdmin={activeClub?.role === "admin"} />;
 
@@ -171,12 +168,12 @@ export default function Contributions() {
              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
                <CalendarRange size={24} />
              </div>
-             <h1 className="text-2xl font-bold text-[var(--text-main)] tracking-tight">
+             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                {cycle.subscriptionFrequency === 'monthly' ? "Monthly collection" : "Weekly collection"}
              </h1>
            </div>
-           <p className="text-[var(--text-muted)] text-sm ml-1">
-              Active Cycle: <span className="font-bold text-[var(--text-main)]">{cycle.name}</span>
+           <p className="text-slate-500 dark:text-slate-400 text-sm ml-1">
+              Active Cycle: <span className="font-bold text-slate-700 dark:text-slate-300">{cycle.name}</span>
            </p>
         </div>
 
@@ -206,11 +203,11 @@ export default function Contributions() {
         {visibleMembers.map((m) => {
           if (!m.subscription) {
               return (
-                <div key={m._id} className="bg-[var(--bg-card)] border border-red-100 dark:border-red-900/50 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                <div key={m._id} className="bg-white dark:bg-slate-900 border border-red-100 dark:border-red-900/30 rounded-xl p-4 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center justify-center font-bold">!</div>
                         <div>
-                            <h3 className="font-bold text-[var(--text-main)]">{m.name}</h3>
+                            <h3 className="font-bold text-slate-800 dark:text-slate-200">{m.name}</h3>
                             <p className="text-xs text-red-400">Subscription data unavailable</p>
                         </div>
                     </div>
@@ -232,10 +229,8 @@ export default function Contributions() {
             <div 
               key={m.membershipId} 
               className={clsx(
-                "bg-[var(--bg-card)] border rounded-[var(--radius-xl)] transition-all duration-300 overflow-hidden",
-                isComplete 
-                    ? "border-emerald-200 dark:border-emerald-900/50 shadow-sm" 
-                    : "border-[var(--border-color)] shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800"
+                "bg-white dark:bg-slate-900 border rounded-[var(--radius-xl)] transition-all duration-300 overflow-hidden",
+                isComplete ? "border-emerald-200 dark:border-emerald-900/40 shadow-sm" : "border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-900/50"
               )}
             >
               {/* MEMBER HEADER ROW */}
@@ -244,12 +239,11 @@ export default function Contributions() {
                 className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
               >
                 <div className="flex items-center gap-4">
-                   {/* Progress Circle */}
                    <div className="relative w-12 h-12 flex items-center justify-center">
                       <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
                         <path className="text-slate-100 dark:text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
                         <path 
-                          className={isComplete ? "text-emerald-500" : "text-primary-600 dark:text-primary-500"} 
+                          className={isComplete ? "text-emerald-500 dark:text-emerald-400" : "text-indigo-600 dark:text-indigo-500"} 
                           strokeDasharray={`${progress}, 100`} 
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
                           fill="none" 
@@ -257,21 +251,21 @@ export default function Contributions() {
                           strokeWidth="3" 
                         />
                       </svg>
-                      <span className="font-bold text-[var(--text-main)] text-sm">{m.name.charAt(0)}</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{m.name.charAt(0)}</span>
                    </div>
                    
                    <div>
-                      <h3 className="font-bold text-[var(--text-main)] text-base">{m.name}</h3>
-                      <p className="text-xs text-[var(--text-muted)] font-medium mt-0.5">
-                        <span className={isComplete ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-primary-600 dark:text-primary-400 font-bold"}>
+                      <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">{m.name}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                        <span className={isComplete ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-indigo-600 dark:text-indigo-400 font-bold"}>
                            {paidCount} 
                         </span>
-                        <span className="opacity-70"> / {cycle.totalInstallments} paid</span>
+                        <span className="text-slate-400 dark:text-slate-500"> / {cycle.totalInstallments} paid</span>
                       </p>
                    </div>
                 </div>
 
-                <div className="p-2 text-[var(--text-muted)]">
+                <div className="p-2 text-slate-400 dark:text-slate-500">
                     {isOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                 </div>
               </div>
@@ -297,12 +291,10 @@ export default function Contributions() {
                                     className={clsx(
                                         "h-10 rounded-lg border text-[10px] font-bold transition-all duration-200 flex items-center justify-center relative",
                                         inst.isPaid 
-                                            ? "bg-emerald-500 border-emerald-500 text-white shadow-sm" 
-                                            : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-muted)]",
+                                            ? "bg-emerald-500 dark:bg-emerald-600 border-emerald-500 dark:border-emerald-600 text-white shadow-sm" 
+                                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500",
                                         
-                                        // Interactive styles ONLY for Admins
-                                        isAdmin && !inst.isPaid && "hover:border-primary-300 dark:hover:border-primary-700 hover:text-primary-600 dark:hover:text-primary-400",
-                                        
+                                        isAdmin && !inst.isPaid && "hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400",
                                         !isAdmin && "opacity-80 cursor-default",
                                         isProcessing && "opacity-50 cursor-wait"
                                     )}
@@ -322,7 +314,6 @@ export default function Contributions() {
   );
 }
 
-// Sub-components
 function StatBadge({ label, value, sub, icon: Icon, color }) {
     const colors = {
         emerald: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30",
@@ -348,13 +339,13 @@ function SkeletonLoader() {
             <div className="flex justify-between items-end">
                 <div className="space-y-2">
                     <div className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
-                    <div className="h-4 w-32 bg-slate-100 dark:bg-slate-800/50 rounded-lg animate-pulse" />
+                    <div className="h-4 w-32 bg-slate-100 dark:bg-slate-900 rounded-lg animate-pulse" />
                 </div>
-                <div className="h-12 w-32 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
+                <div className="h-12 w-32 bg-slate-100 dark:bg-slate-900 rounded-xl animate-pulse" />
             </div>
             <div className="space-y-4">
                 {[1, 2, 3].map(i => (
-                    <div key={i} className="h-24 w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl animate-pulse" />
+                    <div key={i} className="h-24 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl animate-pulse" />
                 ))}
             </div>
         </div>
@@ -365,10 +356,10 @@ function NoCycleState({ isAdmin }) {
     return (
         <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-8">
             <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-3xl mb-6 shadow-inner">
-                {isAdmin ? <AlertCircle className="w-12 h-12 text-slate-400" /> : <Lock className="w-12 h-12 text-slate-400" />}
+                {isAdmin ? <AlertCircle className="w-12 h-12 text-slate-400 dark:text-slate-500" /> : <Lock className="w-12 h-12 text-slate-400 dark:text-slate-500" />}
             </div>
-            <h2 className="text-2xl font-bold text-[var(--text-main)]">Financial Year Not Active</h2>
-            <p className="text-[var(--text-muted)] max-w-md mt-2 leading-relaxed">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Financial Year Not Active</h2>
+            <p className="text-slate-500 dark:text-slate-400 max-w-md mt-2 leading-relaxed">
                 {isAdmin 
                     ? "You haven't started a new financial cycle yet. Go to Settings to configure the new year." 
                     : "The committee has not opened the books for the new year yet. Please check back later."}

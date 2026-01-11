@@ -3,15 +3,14 @@ import { useAuth } from "../context/AuthContext";
 import { Loader2 } from "lucide-react"; 
 
 export default function ProtectedRoute({ children, role }) {
-  // 1. Get activeClub from context to check the user's role in the CURRENT club
   const { user, activeClub, loading } = useAuth();
 
   // ⏳ WAIT for auth check
   if (loading) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-[var(--bg-app)] transition-colors duration-300">
-        <Loader2 className="h-10 w-10 animate-spin text-primary-600 dark:text-primary-400 mb-4" />
-        <p className="text-[var(--text-muted)] font-medium animate-pulse">Verifying access...</p>
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors">
+        <Loader2 className="h-10 w-10 animate-spin text-indigo-600 dark:text-indigo-400 mb-4" />
+        <p className="text-slate-500 dark:text-slate-400 font-medium animate-pulse">Verifying access...</p>
       </div>
     );
   }
@@ -22,10 +21,7 @@ export default function ProtectedRoute({ children, role }) {
   }
 
   // 🛡️ Check 2: RBAC (Role-Based Access Control)
-  // If the route requires a specific role (e.g., 'admin'), check if the
-  // current active club's role matches.
   if (role && activeClub?.role !== role) {
-    // User is logged in but doesn't have permission for this club
     return <Navigate to="/" replace />;
   }
 

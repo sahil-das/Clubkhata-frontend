@@ -20,7 +20,6 @@ export default function AddDonationModal({ onClose, refresh }) {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      // Remove optional empty fields
       const payload = { ...data, amount: Number(data.amount) };
       if (!payload.phone) delete payload.phone;
       if (!payload.receiptNo) delete payload.receiptNo;
@@ -37,33 +36,19 @@ export default function AddDonationModal({ onClose, refresh }) {
   };
 
   return (
-    <div
-      className={`
-        fixed inset-0 z-50 flex items-center justify-center p-4
-        bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm
-        transition-all duration-200
-        ${isClosing ? "animate-fade-out" : "animate-fade-in"}
-      `}
-    >
-      <div
-        className={`
-          bg-[var(--bg-card)] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-[var(--border-color)]
-          transition-all duration-200
-          ${isClosing ? "animate-zoom-out-95" : "animate-zoom-in-95"}
-        `}
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm transition-all duration-200 ${isClosing ? "animate-fade-out" : "animate-fade-in"}`}>
+      <div 
+        /* FIX: Removed 'border-transparent'. Added 'border-0' and 'dark:border'. */
+        className={`bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transition-all duration-200 border-0 dark:border dark:border-slate-800 ${isClosing ? "animate-zoom-out-95" : "animate-zoom-in-95"}`}
       >
+        
         {/* HEADER */}
-        <div className="bg-amber-500 px-6 py-4 flex justify-between items-center text-white">
+        <div className="bg-amber-500 dark:bg-amber-600 px-6 py-4 flex justify-between items-center text-white">
           <div>
             <h2 className="text-lg font-bold">Record Donation</h2>
-            <p className="text-amber-100 text-xs">
-              Add amount to festival fund
-            </p>
+            <p className="text-amber-100 text-xs">Add amount to festival fund</p>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-1 hover:bg-amber-600 rounded-lg transition-colors"
-          >
+          <button onClick={handleClose} className="p-1 hover:bg-amber-600 dark:hover:bg-amber-700 rounded-lg transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -71,69 +56,59 @@ export default function AddDonationModal({ onClose, refresh }) {
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-1.5 block">
-                Donor Name
-              </label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 block">Donor Name</label>
               <div className="relative">
                 <User className="absolute left-3 top-3 text-slate-400" size={16} />
                 <input
                   {...register("donorName", { required: true })}
-                  className="w-full pl-9 pr-4 py-2.5 border border-[var(--border-color)] bg-[var(--bg-input)] rounded-xl outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-[var(--text-main)] placeholder:text-slate-400"
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium"
                   placeholder="e.g. Amit Store"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-1.5 block">
-                Amount (₹)
-              </label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 block">Amount (₹)</label>
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-3 text-slate-400" size={16} />
                 <input
                   type="number"
                   {...register("amount", { required: true })}
-                  className="w-full pl-9 pr-4 py-2.5 border border-[var(--border-color)] bg-[var(--bg-input)] rounded-xl outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-bold text-[var(--text-main)] placeholder:text-slate-400"
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-bold"
                   placeholder="500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-1.5 block">
-                Receipt No
-              </label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 block">Receipt No</label>
               <input
                 {...register("receiptNo")}
-                className="w-full px-4 py-2.5 border border-[var(--border-color)] bg-[var(--bg-input)] rounded-xl outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-[var(--text-main)] placeholder:text-slate-400"
+                className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium"
                 placeholder="Optional"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-1.5 block">
-              Phone Number
-            </label>
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 block">Phone Number</label>
             <div className="relative">
               <Phone className="absolute left-3 top-3 text-slate-400" size={16} />
               <input
                 {...register("phone")}
-                className="w-full pl-9 pr-4 py-2.5 border border-[var(--border-color)] bg-[var(--bg-input)] rounded-xl outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-[var(--text-main)] placeholder:text-slate-400"
+                className="w-full pl-9 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium"
                 placeholder="Optional"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-1.5 block">
-              Address
-            </label>
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 block">Address</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-3 text-slate-400" size={16} />
               <input
                 {...register("address")}
-                className="w-full pl-9 pr-4 py-2.5 border border-[var(--border-color)] bg-[var(--bg-input)] rounded-xl outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-[var(--text-main)] placeholder:text-slate-400"
+                className="w-full pl-9 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium"
                 placeholder="e.g. Main Road"
               />
             </div>
@@ -143,14 +118,14 @@ export default function AddDonationModal({ onClose, refresh }) {
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 py-3 text-[var(--text-muted)] font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm"
+              className="flex-1 py-3 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 shadow-lg shadow-amber-200 dark:shadow-none transition-all flex justify-center items-center gap-2 text-sm"
+              className="flex-1 py-3 bg-amber-500 dark:bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-600 dark:hover:bg-amber-500 shadow-lg shadow-amber-200 dark:shadow-none transition-all flex justify-center items-center gap-2 text-sm"
             >
               {loading ? <Loader2 className="animate-spin" size={18} /> : "Save Record"}
             </button>
