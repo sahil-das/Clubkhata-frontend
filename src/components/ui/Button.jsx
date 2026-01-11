@@ -3,7 +3,6 @@ import { Loader2 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-// Utility for merging tailwind classes safely
 function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
@@ -20,14 +19,21 @@ export const Button = React.forwardRef(({
   ...props 
 }, ref) => {
   
-  const baseStyles = "inline-flex items-center justify-center rounded-[var(--radius-button)] font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none focus-visible:ring-2 focus-visible:ring-primary-200";
+  const baseStyles = "inline-flex items-center justify-center rounded-[var(--radius-button)] font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none focus-visible:ring-2 focus-visible:ring-primary-200 dark:focus-visible:ring-primary-900";
   
   const variants = {
-    primary: "bg-primary-600 text-white hover:bg-primary-700 shadow-lg shadow-primary-200",
-    secondary: "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm",
-    ghost: "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-    danger: "bg-red-50 text-red-600 border border-red-100 hover:bg-red-100",
-    outline: "border-2 border-primary-600 text-primary-600 hover:bg-primary-50"
+    primary: "bg-primary-600 text-white hover:bg-primary-700 shadow-lg shadow-primary-200 dark:shadow-none",
+    
+    // Updated Secondary for Dark Mode
+    secondary: "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm",
+    
+    // Updated Ghost for Dark Mode
+    ghost: "bg-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200",
+    
+    // Updated Danger for Dark Mode
+    danger: "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/30",
+    
+    outline: "border-2 border-primary-600 dark:border-primary-500 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20"
   };
 
   const sizes = {

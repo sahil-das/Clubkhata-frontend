@@ -32,7 +32,7 @@ export default function RequireSubscription() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <Loader2 className="animate-spin text-indigo-600" size={32} />
+        <Loader2 className="animate-spin text-indigo-600 dark:text-indigo-400" size={32} />
       </div>
     );
   }

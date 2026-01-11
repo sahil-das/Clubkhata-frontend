@@ -33,7 +33,7 @@ export default function Sidebar({ isOpen, onClose }) {
     <>
       {/* --- MOBILE BACKDROP --- */}
       <div
-        className={`fixed inset-0 bg-slate-900/40 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-slate-900/40 dark:bg-black/60 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
@@ -43,28 +43,27 @@ export default function Sidebar({ isOpen, onClose }) {
       <div
         className={`
         fixed inset-y-0 left-0 z-50 flex flex-col 
-        bg-white text-slate-700 border-r border-slate-200 shadow-xl 
+        bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 shadow-xl 
         /* Animation Classes */
         transition-all duration-300 ease-in-out
-        overflow-x-hidden
         
         /* Mobile: Slide Logic */
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
         
         /* Desktop: Always visible + Width Logic */
-        md:translate-x-0 md:static md:shadow-none
+        /* FIX: Changed md:static to md:relative so z-50 applies and the button sits on top of the adjacent TopBar */
+        md:translate-x-0 md:relative md:shadow-none
         
-        /* FIX 1: Ensure width is always w-72 on mobile, only use w-20 on md screens if collapsed */
+        /* Width Logic */
         ${collapsed ? "md:w-20 w-72" : "md:w-72 w-72"}
       `}
       >
         {/* HEADER */}
-        <div className="flex items-center justify-between p-4 h-16 border-b border-slate-100 relative shrink-0">
+        <div className="flex items-center justify-between p-4 h-16 border-b border-slate-100 dark:border-slate-800 relative shrink-0">
            
            {/* BRANDING */}
            <div className={`
              flex items-center transition-all duration-300 ease-in-out
-             /* FIX 2: Only center content on desktop if collapsed. On mobile, keep standard layout */
              ${collapsed ? "md:justify-center md:px-0 w-full" : "w-full gap-3"}
            `}>
              
@@ -72,31 +71,30 @@ export default function Sidebar({ isOpen, onClose }) {
             <img 
               src="/logo.png" 
               alt="Club Logo" 
-              className="w-8 h-8 rounded-lg object-contain bg-white shadow-lg shadow-indigo-100 z-10 relative border border-slate-100" 
+              className="w-8 h-8 rounded-lg object-contain bg-white dark:bg-slate-800 shadow-lg shadow-indigo-100 dark:shadow-none z-10 relative border border-slate-100 dark:border-slate-700" 
             />
 
              {/* TEXT */}
-             {/* FIX 3: Force text to be visible on mobile (w-40 opacity-100) even if collapsed is true */}
              <div className={`
                whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out
                ${collapsed ? "md:w-0 md:opacity-0 w-40 opacity-100" : "w-40 opacity-100"}
              `}>
-               <h2 className="text-sm font-bold truncate leading-tight tracking-wide text-slate-800">ClubKhata</h2>
-               <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold truncate">
+               <h2 className="text-sm font-bold truncate leading-tight tracking-wide text-slate-800 dark:text-slate-100">ClubKhata</h2>
+               <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold truncate">
                  {activeClub?.clubName || "Select Club"}
                </p>
              </div>
            </div>
 
            {/* Mobile Close Button */}
-           <button onClick={onClose} className="md:hidden text-slate-400 hover:text-slate-600 p-1 absolute right-4">
+           <button onClick={onClose} className="md:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 absolute right-4">
              <X size={24} />
            </button>
 
            {/* Desktop Collapse Toggle */}
            <button
              onClick={() => setCollapsed(!collapsed)}
-             className="hidden md:flex items-center justify-center w-6 h-6 rounded-full bg-white hover:bg-slate-50 text-slate-400 hover:text-indigo-600 transition-colors absolute -right-3 top-1/2 -translate-y-1/2 border border-slate-200 z-50 shadow-sm"
+             className="hidden md:flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors absolute -right-3 top-1/2 -translate-y-1/2 border border-slate-200 dark:border-slate-700 z-50 shadow-sm"
            >
              {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
            </button>
@@ -123,10 +121,9 @@ export default function Sidebar({ isOpen, onClose }) {
                 className={`
                   flex items-center px-3 py-3 rounded-xl transition-all duration-200 group relative
                   ${active 
-                    ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100" 
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 shadow-sm ring-1 ring-indigo-100 dark:ring-indigo-900/30" 
+                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
                   }
-                  /* FIX 4: Only remove gap on desktop when collapsed. Keep gap on mobile. */
                   ${collapsed ? "md:justify-center md:gap-0 gap-3" : "gap-3"}
                 `}
               >
@@ -134,25 +131,24 @@ export default function Sidebar({ isOpen, onClose }) {
                 <item.icon 
                   size={20} 
                   strokeWidth={active ? 2.5 : 2} 
-                  className={`shrink-0 ${active ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}`} 
+                  className={`shrink-0 ${active ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"}`} 
                 />
                 
                 {/* Label */}
-                {/* FIX 5: Force label visible on mobile (w-32 opacity-100) even if collapsed */}
                 <span 
                   className={`
                     font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out
-                    ${collapsed ? "md:w-0 md:opacity-0 w-32 opacity-100" : "w-32 opacity-100"}
+                    ${collapsed ? "md:w-0 md:opacity-0 w-52 opacity-100" : "w-52 opacity-100"}
                   `}
                 >
                   {label}
                 </span>
 
-                {/* Tooltip (Only on Collapsed + Hover + Desktop) */}
+                {/* Tooltip */}
                 {collapsed && (
-                  <div className="hidden md:block absolute left-14 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                  <div className="hidden md:block absolute left-14 px-3 py-1.5 bg-slate-800 dark:bg-slate-700 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
                     {label}
-                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-slate-800"></div>
+                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-slate-800 dark:border-r-slate-700"></div>
                   </div>
                 )}
               </Link>

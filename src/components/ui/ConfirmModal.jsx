@@ -1,7 +1,7 @@
 // src/components/ui/ConfirmModal.jsx
 import Modal from "./Modal";
 import { AlertTriangle } from "lucide-react";
-import { Button } from "./Button"; // Using your existing Button component
+import { Button } from "./Button"; 
 
 export default function ConfirmModal({ 
   isOpen, 
@@ -18,19 +18,19 @@ export default function ConfirmModal({
       <div className="flex flex-col gap-4">
         {/* Icon & Message */}
         <div className="flex gap-4">
-          <div className={`shrink-0 p-3 rounded-full ${isDangerous ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
+          <div className={`shrink-0 p-3 rounded-full ${isDangerous ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'}`}>
             <AlertTriangle size={24} />
           </div>
           <div>
-            <h4 className="font-bold text-slate-700">Confirmation Required</h4>
-            <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+            <h4 className="font-bold text-slate-700 dark:text-slate-200">Confirmation Required</h4>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
               {message}
             </p>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-50">
+        <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-50 dark:border-slate-800">
           <Button variant="secondary" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>

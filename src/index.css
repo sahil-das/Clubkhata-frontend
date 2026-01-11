@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
+/* 1. Define Class-Based Dark Mode for Tailwind 4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* --- 🎨 THE "TRUST" PALETTE --- */
   
-  /* Primary Brand (Violet/Indigo - Playful but Serious) */
+  /* Primary Brand (Violet/Indigo) */
   --color-primary-50: #f5f3ff;
   --color-primary-100: #ede9fe;
   --color-primary-200: #ddd6fe;
@@ -16,7 +19,7 @@
   --color-primary-900: #4c1d95;
   --color-primary-950: #2e1065;
 
-  /* Neutrals (Slate - Cleaner than Gray) */
+  /* Neutrals (Slate) */
   --color-slate-50: #f8fafc;
   --color-slate-100: #f1f5f9;
   --color-slate-200: #e2e8f0;
@@ -30,14 +33,14 @@
   --color-slate-950: #020617;
 
   /* Semantic Colors */
-  --color-success: #10b981; /* Emerald 500 */
-  --color-danger: #ef4444;  /* Red 500 */
-  --color-warning: #f59e0b; /* Amber 500 */
+  --color-success: #10b981; 
+  --color-danger: #ef4444;  
+  --color-warning: #f59e0b; 
 
   /* --- 📐 SPACING & RADIUS --- */
-  --radius-xl: 1rem;       /* 16px - Standard for Cards */
-  --radius-2xl: 1.5rem;    /* 24px - Modals */
-  --radius-button: 0.75rem; /* 12px - Buttons */
+  --radius-xl: 1rem;       
+  --radius-2xl: 1.5rem;    
+  --radius-button: 0.75rem; 
 
   /* --- ⚡ ANIMATIONS --- */
   --animate-fade-in: fadeIn 0.3s ease-out;
@@ -58,20 +61,37 @@
   }
 }
 
-/* Global Reset & Typography */
+/* Global Variables & Reset */
 :root {
+  /* Default Light Mode Vars */
+  --bg-main: var(--color-slate-50);
+  --text-main: var(--color-slate-900);
+  --bg-card: #ffffff;
+  --border-color: var(--color-slate-200);
+
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: var(--color-slate-900);
-  background-color: var(--color-slate-50); /* Light blue-grey tint */
+  
+  /* Apply vars */
+  color: var(--text-main);
+  background-color: var(--bg-main);
+  
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Premium Scrollbar */
+/* Dark Mode Overrides */
+.dark {
+  --bg-main: var(--color-slate-950);
+  --text-main: var(--color-slate-100);
+  --bg-card: var(--color-slate-900);
+  --border-color: var(--color-slate-800);
+}
+
+/* Premium Scrollbar (Theme Aware) */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -83,11 +103,39 @@
   background: var(--color-slate-300);
   border-radius: 10px;
 }
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-slate-700);
+}
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-slate-400);
 }
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-slate-600);
+}
 
-/* Remove default focus ring and add our custom one */
+/* Remove default focus ring */
 input:focus, button:focus, select:focus, textarea:focus {
   outline: none;
+}
+
+/* NProgress Theme Integration */
+#nprogress .bar {
+  background: var(--color-primary-600) !important;
+}
+.dark #nprogress .bar {
+  background: var(--color-primary-400) !important;
+}
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--color-primary-600), 0 0 5px var(--color-primary-600) !important;
+}
+.dark #nprogress .peg {
+  box-shadow: 0 0 10px var(--color-primary-400), 0 0 5px var(--color-primary-400) !important;
+}
+#nprogress .spinner-icon {
+  border-top-color: var(--color-primary-600) !important;
+  border-left-color: var(--color-primary-600) !important;
+}
+.dark #nprogress .spinner-icon {
+  border-top-color: var(--color-primary-400) !important;
+  border-left-color: var(--color-primary-400) !important;
 }

@@ -10,15 +10,15 @@ const toastVariants = {
 };
 
 const icons = {
-  success: <CheckCircle className="text-emerald-500" size={20} />,
-  error: <XCircle className="text-red-500" size={20} />,
-  info: <Info className="text-blue-500" size={20} />
+  success: <CheckCircle className="text-emerald-500 dark:text-emerald-400" size={20} />,
+  error: <XCircle className="text-red-500 dark:text-red-400" size={20} />,
+  info: <Info className="text-blue-500 dark:text-blue-400" size={20} />
 };
 
 const borders = {
-  success: "border-emerald-100 bg-emerald-50/80",
-  error: "border-red-100 bg-red-50/80",
-  info: "border-blue-100 bg-blue-50/80"
+  success: "border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/80 dark:bg-emerald-900/80",
+  error: "border-red-100 dark:border-red-900/30 bg-red-50/80 dark:bg-red-900/80",
+  info: "border-blue-100 dark:border-blue-900/30 bg-blue-50/80 dark:bg-blue-900/80"
 };
 
 export default function ToastContainer({ toasts, removeToast }) {
@@ -53,16 +53,16 @@ function ToastItem({ toast, removeToast }) {
     >
       <div className="mt-0.5 shrink-0">{icons[toast.type] || icons.info}</div>
       <div className="flex-1">
-        <h4 className={`text-sm font-bold capitalize ${toast.type === 'error' ? 'text-red-800' : 'text-slate-800'}`}>
+        <h4 className={`text-sm font-bold capitalize ${toast.type === 'error' ? 'text-red-800 dark:text-red-200' : 'text-slate-800 dark:text-slate-100'}`}>
           {toast.type}
         </h4>
-        <p className="text-sm text-slate-600 leading-relaxed">
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           {toast.message}
         </p>
       </div>
       <button 
         onClick={() => removeToast(toast.id)}
-        className="text-slate-400 hover:text-slate-600 transition-colors"
+        className="text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
       >
         <X size={16} />
       </button>

@@ -18,7 +18,6 @@ export default function CreateYearModal({ onSuccess, onClose }) {
   const toast = useToast();
   const frequency = watch("frequency");
 
-  // ✅ Auto-set installments when frequency changes
   useEffect(() => {
     if (frequency === "monthly") {
       setValue("totalInstallments", 12);
@@ -32,13 +31,8 @@ export default function CreateYearModal({ onSuccess, onClose }) {
 const onSubmit = async (data) => {
   setLoading(true);
   try {
-    // ✅ FIX 1: If empty string, send undefined. 
-    // This allows the Backend Controller to trigger "Auto-Transfer" logic.
-    // Joi will accept 'undefined' because the field is .optional()
     const balanceToSend = data.openingBalance === "" ? undefined : Number(data.openingBalance);
 
-    // ✅ FIX 2: Handle 'none' frequency
-    // If 'none', don't send 0, send undefined to bypass Joi's .min(1) rule.
     let installmentsToSend;
     if (data.frequency === 'none') {
         installmentsToSend = undefined;
@@ -52,9 +46,9 @@ const onSubmit = async (data) => {
       name: data.name,
       startDate: data.startDate,
       endDate: data.endDate,
-      openingBalance: balanceToSend, // 👈 Sends number or undefined (not "")
+      openingBalance: balanceToSend,
       subscriptionFrequency: data.frequency,
-      totalInstallments: installmentsToSend, // 👈 Sends valid number or undefined (not 0)
+      totalInstallments: installmentsToSend,
       amountPerInstallment: Number(data.amountPerInstallment)
     });
     
@@ -68,11 +62,9 @@ const onSubmit = async (data) => {
 };
 
   return (
-    // 1. BACKDROP ANIMATION (Fade In)
-    <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-300">
       
-      {/* 2. MODAL CARD ANIMATION (Zoom In + Slide Up) */}
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 border border-transparent dark:border-slate-800">
         
         <button 
           onClick={onClose}
@@ -81,7 +73,7 @@ const onSubmit = async (data) => {
           <X size={20} />
         </button>
 
-        <div className="bg-indigo-600 p-6 text-white text-center shrink-0">
+        <div className="bg-indigo-600 dark:bg-indigo-700 p-6 text-white text-center shrink-0">
           <div className="bg-white/20 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
              <Calendar className="w-7 h-7" />
           </div>
@@ -93,10 +85,10 @@ const onSubmit = async (data) => {
           
           {/* Basic Details */}
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase ml-1">Event Name</label>
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Event Name</label>
             <input
               {...register("name", { required: true })}
-              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 mt-1 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-medium transition-all"
+              className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 mt-1 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 dark:focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-medium transition-all"
               placeholder="e.g. Durga Puja 2026"
               autoFocus
             />
@@ -104,25 +96,25 @@ const onSubmit = async (data) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase ml-1">Start Date</label>
-              <input type="date" {...register("startDate", { required: true })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 mt-1 focus:outline-none focus:border-indigo-500" />
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Start Date</label>
+              <input type="date" {...register("startDate", { required: true })} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 mt-1 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500" />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase ml-1">End Date</label>
-              <input type="date" {...register("endDate", { required: true })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 mt-1 focus:outline-none focus:border-indigo-500" />
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">End Date</label>
+              <input type="date" {...register("endDate", { required: true })} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 mt-1 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500" />
             </div>
           </div>
 
           {/* RULES SECTION */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-             <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
                <Settings size={16} className="text-indigo-500"/> Collection Rules
              </h3>
              
              <div className="space-y-4">
                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Frequency</label>
-                  <select {...register("frequency")} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white outline-none focus:border-indigo-500">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Frequency</label>
+                  <select {...register("frequency")} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500">
                     <option value="weekly">Weekly Collection</option>
                     <option value="monthly">Monthly Collection</option>
                     <option value="none">No Recurring (Donations Only)</option>
@@ -133,31 +125,31 @@ const onSubmit = async (data) => {
                  <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-2 fade-in">
                     {frequency === "weekly" ? (
                       <div>
-                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Total Weeks</label>
+                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Total Weeks</label>
                          <input 
                             type="number" 
                             {...register("totalInstallments")} 
-                            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-indigo-500 outline-none"
+                            className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 focus:border-indigo-500 outline-none"
                             placeholder="52"
                          />
                       </div>
                     ) : (
-                      <div className="flex flex-col justify-center bg-white border border-slate-200 rounded-xl px-3">
+                      <div className="flex flex-col justify-center bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3">
                          <span className="text-[10px] text-slate-400 uppercase font-bold">Duration</span>
-                         <span className="text-sm font-bold text-slate-700">12 Months (Fixed)</span>
+                         <span className="text-sm font-bold text-slate-700 dark:text-slate-200">12 Months (Fixed)</span>
                       </div>
                     )}
 
                     <div>
-                       <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">
+                       <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
                          Amount / {frequency === "weekly" ? "Week" : "Month"}
                        </label>
                        <div className="relative">
-                          <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₹</span>
+                          <span className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-500 font-bold">₹</span>
                           <input 
                               type="number" 
                               {...register("amountPerInstallment")} 
-                              className="w-full border border-slate-200 rounded-xl pl-7 pr-3 py-2.5 text-sm focus:border-indigo-500 outline-none font-bold text-slate-700" 
+                              className="w-full border border-slate-200 dark:border-slate-700 rounded-xl pl-7 pr-3 py-2.5 text-sm bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-100 focus:border-indigo-500 outline-none font-bold" 
                               placeholder="e.g. 50"
                           />
                        </div>
@@ -169,16 +161,16 @@ const onSubmit = async (data) => {
 
           {/* Opening Balance */}
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2 ml-1">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-2 ml-1">
               <Coins size={14}/> Opening Balance
             </label>
             <input
               type="number"
               {...register("openingBalance")}
-              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 mt-1 focus:border-emerald-500 outline-none placeholder-slate-300 transition-colors"
+              className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 mt-1 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 focus:border-emerald-500 outline-none placeholder-slate-300 dark:placeholder-slate-600 transition-colors"
               placeholder="Leave empty to auto-transfer balance"
             />
-            <p className="text-[10px] text-slate-400 mt-1.5 ml-1 leading-tight">
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 ml-1 leading-tight">
               If empty, we will calculate and transfer the remaining balance from the last closed year.
             </p>
           </div>
@@ -188,14 +180,14 @@ const onSubmit = async (data) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition"
+              className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition flex justify-center items-center gap-2 shadow-lg shadow-indigo-200"
+              className="flex-1 bg-indigo-600 dark:bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition flex justify-center items-center gap-2 shadow-lg shadow-indigo-200 dark:shadow-none"
             >
               {loading ? <Loader2 className="animate-spin" /> : "Start Year"}
             </button>
