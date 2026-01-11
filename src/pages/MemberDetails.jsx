@@ -35,6 +35,7 @@ export default function MemberDetails() {
   const [member, setMember] = useState(null);
   const [subscription, setSubscription] = useState(null);
   const [frequency, setFrequency] = useState("weekly"); 
+  const [installmentAmount, setInstallmentAmount]= useState(null);
   const [chandaHistory, setChandaHistory] = useState([]);
   const [stats, setStats] = useState({ subPaid: 0, subDue: 0, chandaPaid: 0 });
    
@@ -87,6 +88,7 @@ export default function MemberDetails() {
       
       // Default to weekly if year data is missing
       setFrequency(data.year?.frequency || "weekly");
+      setInstallmentAmount(parseAmount(data.year?.amountPerInstallment) || 0);
 
       // 3. Fetch Puja Fees (ONLY if Year is Open)
       // We use isClosedLocal because state updates are async
@@ -311,7 +313,7 @@ export default function MemberDetails() {
                 <div className="grid grid-cols-2 gap-4">
                     <Card noPadding className="bg-white border-slate-200 p-4">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Paid</p>
-                        <p className="text-xl font-bold text-emerald-600 font-mono">₹{totalContribution.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-emerald-600 font-mono">₹{installmentAmount}</p>
                     </Card>
                     {frequency !== 'none' && (
                         <Card noPadding className="bg-white border-slate-200 p-4">
