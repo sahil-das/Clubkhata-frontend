@@ -261,7 +261,7 @@ export default function MemberDetails() {
                           </div>
                           
                           <p className="text-sm text-slate-500 mt-1 pl-7">
-                            {frequency === 'monthly' ? 'Monthly' : 'Weekly'} Plan • <span className="font-bold text-slate-700">₹{parseAmount(subscription?.year?.amountPerInstallment)}</span> / period
+                            {frequency === 'monthly' ? 'Monthly' : 'Weekly'} Plan • <span className="font-bold text-slate-700">₹{installmentAmount}</span> / period
                           </p>
                         </button>
                     </div>
@@ -313,7 +313,7 @@ export default function MemberDetails() {
                 <div className="grid grid-cols-2 gap-4">
                     <Card noPadding className="bg-white border-slate-200 p-4">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Paid</p>
-                        <p className="text-xl font-bold text-emerald-600 font-mono">₹{installmentAmount}</p>
+                        <p className="text-xl font-bold text-emerald-600 font-mono">₹{totalContribution.toLocaleString()}</p>
                     </Card>
                     {frequency !== 'none' && (
                         <Card noPadding className="bg-white border-slate-200 p-4">
