@@ -39,12 +39,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   // --- login (UPDATED) ---
-  const login = async (email, password, config = {}) => { // 👈 Added config param
+  const login = async (email, password, config = {}) => { 
     setLoading(true);
     try {
       // Pass the config (e.g., skipGlobalLoading) to axios
       const res = await api.post("/auth/login", { email, password }, config);
       const { accessToken, refreshToken, user: userData, clubs } = res.data;
+
+      // 🛑 SECURITY CHECK:
+      // If user has NO clubs and is NOT a Platform Admin, block login.
+      if ((!clubs || clubs.length === 0) && !userData.isPlatformAdmin) {
+          throw new Error("You are not a member of any club.");
+      }
 
       saveTokens({ accessToken, refreshToken });
       setUser(userData || null);
@@ -55,6 +61,9 @@ export function AuthProvider({ children }) {
         setActiveClub(chosen);
         localStorage.setItem("activeClubId", chosen.clubId);
       } else {
+        // ✅ PLATFORM ADMIN CASE:
+        // No clubs found, but user is Platform Admin. 
+        // We set activeClub to null and allow proceeding.
         setActiveClub(null);
         localStorage.removeItem("activeClubId");
       }
@@ -90,6 +99,7 @@ export function AuthProvider({ children }) {
         const clubs = res.data.clubs || [];
         setUser(userData);
         setAvailableClubs(clubs);
+        
         if (storedClubId && clubs.length > 0) {
           const matched = clubs.find((c) => c.clubId === storedClubId);
           setActiveClub(matched || clubs[0]);
@@ -98,6 +108,7 @@ export function AuthProvider({ children }) {
           setActiveClub(clubs[0]);
           localStorage.setItem("activeClubId", clubs[0].clubId);
         } else {
+          // If no clubs (e.g., Platform Admin), ensure activeClub is null
           setActiveClub(null);
           localStorage.removeItem("activeClubId");
         }

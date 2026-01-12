@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import TopBar from "../components/TopBar";
+import GlobalBanner from "../components/GlobalBanner"; // 👈 Import Banner
 
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -17,6 +18,9 @@ export default function Dashboard() {
       {/* MAIN CONTENT WRAPPER */}
       <div className="flex-1 flex flex-col h-full relative w-full transition-all duration-300">
         
+        {/* 📢 GLOBAL ANNOUNCEMENT BANNER (Placed above TopBar) */}
+        <GlobalBanner />
+
         {/* TOP BAR */}
         <TopBar onMenuClick={() => setIsSidebarOpen(true)} />
 

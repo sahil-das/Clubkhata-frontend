@@ -53,9 +53,15 @@ export function ThemeProvider({ children }) {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  // 🚀 ADDED THIS HELPER FUNCTION
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
   const value = {
     theme,
     setTheme,
+    toggleTheme, // 👈 Exported here
     isDark: 
       theme === "dark" || 
       (theme === "system" && typeof window !== 'undefined' && window.matchMedia("(prefers-color-scheme: dark)").matches)

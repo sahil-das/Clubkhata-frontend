@@ -18,9 +18,15 @@ export default function Login() {
   const { showLoader, hideLoader } = useLoading();
   const navigate = useNavigate();
 
+  // 1. AUTO REDIRECT (If already logged in)
   useEffect(() => {
     if (user && !authLoading) {
-      navigate("/", { replace: true });
+      // 🚀 FIX: Check role before redirecting
+      if (user.isPlatformAdmin) {
+        navigate("/platform", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     }
   }, [user, authLoading, navigate]);
 
@@ -31,9 +37,18 @@ export default function Login() {
 
     try {
       const result = await login(input, password, { skipGlobalLoading: true });
+      
+      // 🚀 FIX: Handle Platform Admin Login First
+      if (result.user?.isPlatformAdmin) {
+         navigate("/platform");
+         return;
+      }
+
+      // Normal User Logic
       const clubs = (result && result.clubs) || [];
       if (clubs && clubs.length === 1) selectClub(clubs[0]);
       navigate("/");
+
     } catch (err) {
       if (err?.response) {
         const status = err.response.status;
@@ -92,7 +107,6 @@ export default function Login() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               required
-              /* Updated manual overrides for Dark Mode */
               className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 transition-colors"
             />
 

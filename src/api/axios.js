@@ -63,9 +63,12 @@ api.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
-    if (activeClubId) {
+
+    // 🚀 FIX: Prevent sending "null" or "undefined" strings as headers
+    if (activeClubId && activeClubId !== "null" && activeClubId !== "undefined") {
       config.headers["x-club-id"] = activeClubId;
     }
+
     return config;
   },
   (error) => {

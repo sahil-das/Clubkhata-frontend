@@ -3,12 +3,12 @@ import { Link, useLocation } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import {
-  X, ChevronLeft, ChevronRight,
+  X, ChevronLeft, ChevronRight, ShieldAlert // 👈 Added Icon
 } from "lucide-react";
 import menuItems from "../config/navigation";
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { activeClub } = useAuth();
+  const { activeClub, user } = useAuth(); // 👈 Get 'user' to check admin status
   const location = useLocation();
   const [frequency, setFrequency] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
@@ -51,7 +51,6 @@ export default function Sidebar({ isOpen, onClose }) {
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
         
         /* Desktop: Always visible + Width Logic */
-        /* FIX: Changed md:static to md:relative so z-50 applies and the button sits on top of the adjacent TopBar */
         md:translate-x-0 md:relative md:shadow-none
         
         /* Width Logic */
@@ -155,6 +154,39 @@ export default function Sidebar({ isOpen, onClose }) {
             );
           })}
         </nav>
+
+        {/* 🚀 PLATFORM ADMIN SWITCH (Sticky Footer) */}
+        {user?.isPlatformAdmin && (
+            <div className="p-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                <Link
+                    to="/platform"
+                    className={`
+                        flex items-center px-3 py-3 rounded-xl transition-all duration-200 group relative
+                        bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md hover:opacity-90
+                        ${collapsed ? "md:justify-center md:gap-0 gap-3" : "gap-3"}
+                    `}
+                >
+                    <ShieldAlert size={20} strokeWidth={2} className="shrink-0" />
+                    
+                    <span 
+                        className={`
+                            font-bold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out
+                            ${collapsed ? "md:w-0 md:opacity-0 w-52 opacity-100" : "w-52 opacity-100"}
+                        `}
+                    >
+                        Platform Panel
+                    </span>
+
+                    {/* Tooltip for Platform Button */}
+                    {collapsed && (
+                        <div className="hidden md:block absolute left-14 px-3 py-1.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                            Platform Panel
+                            <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-slate-900 dark:border-r-slate-100"></div>
+                        </div>
+                    )}
+                </Link>
+            </div>
+        )}
       </div>
     </>
   );

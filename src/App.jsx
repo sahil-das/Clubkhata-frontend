@@ -1,5 +1,6 @@
 import React, { Suspense } from "react"; 
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+// 1. Added 'Outlet' to imports for the Platform Layout
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 // Providers & Components
 import { AuthProvider } from "./context/AuthContext";
@@ -9,6 +10,7 @@ import RequireSubscription from "./components/RequireSubscription";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ToastProvider } from "./context/ToastContext";
 import LoadingOverlay from "./loading/LoadingOverlay"; 
+import PlatformSidebar from "./components/PlatformSidebar";
 
 // Lazy Load Pages
 const Login = React.lazy(() => import("./pages/Login"));
@@ -29,11 +31,25 @@ const AuditLogs = React.lazy(() => import("./pages/AuditLogs"));
 const Archives = React.lazy(() => import("./pages/Archives"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
+// Platform Admin Pages
+const PlatformDashboard = React.lazy(() => import("./pages/platform/PlatformDashboard"));
+const ClubManagement = React.lazy(() => import("./pages/platform/ClubManagement"));
+const PlatformReports = React.lazy(() => import("./pages/platform/PlatformReports"));
+const SystemHealth = React.lazy(() => import("./pages/platform/SystemHealth"));
+const PlatformAnnouncements = React.lazy(() => import("./pages/platform/PlatformAnnouncements"));
 // Fallback for Suspense
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-white dark:bg-slate-950">
     <div className="animate-spin h-8 w-8 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full" />
   </div>
+);
+
+// Helper Layout for Platform Admin to ensure Sidebar is always visible
+const PlatformLayout = () => (
+  <>
+    <PlatformSidebar />
+    <Outlet /> {/* Renders the child route (Dashboard or ClubManagement) */}
+  </>
 );
 
 export default function App() {
@@ -51,7 +67,23 @@ export default function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<RegisterClub />} />
 
-                {/* PROTECTED ROUTES */}
+                {/* 🚀 NEW: PLATFORM ADMIN ROUTES */}
+                <Route 
+                  path="/platform" 
+                  element={
+                    <ProtectedRoute platformOnly={true}>
+                      <PlatformLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<PlatformDashboard />} />
+                  <Route path="clubs" element={<ClubManagement />} />
+                  <Route path="reports" element={<PlatformReports />} />
+                  <Route path="health" element={<SystemHealth />} />
+                  <Route path="announcements" element={<PlatformAnnouncements />} />
+                </Route>
+
+                {/* PROTECTED ROUTES (CLUB MEMBERS & ADMINS) */}
                 <Route 
                   path="/" 
                   element={
@@ -88,6 +120,7 @@ export default function App() {
                   <Route path="audit-logs" element={<ProtectedRoute role="admin"><AuditLogs /></ProtectedRoute>} />
                 </Route>
 
+                {/* CATCH ALL */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
