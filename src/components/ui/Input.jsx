@@ -48,6 +48,6 @@ export const Input = React.forwardRef(({ className, icon: Icon, suffix, error, l
       {error && <p className="text-xs text-red-500 mt-1 ml-1 font-medium">{error}</p>}
     </div>
   );
-});
+}); 
 
 Input.displayName = "Input";
