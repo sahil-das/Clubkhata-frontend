@@ -183,7 +183,7 @@ export default function Archives() {
                               
                               {/* ⚠️ INTELLIGENT BALANCE BOX */}
                               <DetailBox 
-                                label={yearDetails.summary.hasDiscrepancy ? "Stored Balance" : "Net Balance"}
+                                label={yearDetails.summary.hasDiscrepancy ? "Stored Balance" : "Closing Balance"}
                                 amount={yearDetails.summary.netBalance} 
                                 isBold 
                                 color={yearDetails.summary.hasDiscrepancy ? "text-amber-600 dark:text-amber-400" : "text-primary-700 dark:text-primary-400"}
