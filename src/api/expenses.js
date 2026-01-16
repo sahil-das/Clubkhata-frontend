@@ -14,3 +14,12 @@ export const rejectExpense = (id) =>
 
 export const deleteExpense = (id) => 
   api.delete(`/expenses/${id}`);
+
+/**
+ * Get distinct expense categories used in the active year
+ * @returns {Promise<string[]>} Array of category names
+ */
+export const getExpenseCategories = async () => {
+  const response = await api.get("/expenses/categories");
+  return response.data; // Returns { success: true, data: ["Food", "Travel"] }
+};

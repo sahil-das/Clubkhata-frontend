@@ -11,6 +11,7 @@ import AddDonationModal from "../components/AddDonationModal";
 import AddMemberModal from "../components/AddMemberModal"; 
 import AddPujaModal from "../components/AddPujaModal"; 
 import NoticeBoard from "../components/NoticeBoard"; 
+import ActivePollsWidget from "../components/ActivePollsWidget"; 
 
 // Icons
 import { 
@@ -21,9 +22,12 @@ import {
 export default function DashboardHome() {
   const { activeClub, user } = useAuth(); 
   const toast = useToast();
+  const navigate = useNavigate();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreateYear, setShowCreateYear] = useState(false);
+  const [frequency, setFrequency] = useState(null); 
   
   // Modal States
   const [showExpense, setShowExpense] = useState(false);
@@ -38,9 +42,6 @@ export default function DashboardHome() {
     if (hour < 18) return "Good Afternoon";
     return "Good Evening";
   }, []);
-
-  const [frequency, setFrequency] = useState(null); 
-  const navigate = useNavigate();
 
   const fetchSummary = async () => {
     try {
@@ -76,7 +77,6 @@ export default function DashboardHome() {
     }
   }, [activeClub]);
 
-  // Loading View
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400">
@@ -117,16 +117,6 @@ export default function DashboardHome() {
          <div className="bg-gray-100 dark:bg-slate-800 p-6 rounded-full mb-4"><Lock className="w-12 h-12 text-gray-400 dark:text-slate-500" /></div>
          <h2 className="text-2xl font-bold text-gray-700 dark:text-slate-200">Financial Year Closed</h2>
          <p className="text-gray-500 dark:text-slate-400 max-w-md mt-2">Please wait for the admin to start the new session.</p>
-      </div>
-    );
-  }
-
-  // 🛡️ Fail-safe
-  if (!data) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 text-slate-400">
-        <p>Unable to load dashboard data. Please try again.</p>
-        <button onClick={fetchSummary} className="mt-4 text-indigo-600 dark:text-indigo-400 font-bold underline">Retry</button>
       </div>
     );
   }
@@ -183,9 +173,9 @@ export default function DashboardHome() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         
-        {/* LEFT COLUMN: Actions & Breakdown */}
+        {/* LEFT COLUMN: Actions & Breakdown (Takes 2/3 width) */}
         <div className="lg:col-span-2 space-y-6">
            
            {/* QUICK ACTIONS */}
@@ -262,9 +252,19 @@ export default function DashboardHome() {
            </div>
         </div>
 
-        {/* RIGHT COLUMN: Notice Board */}
-        <div className="lg:col-span-1 h-full">
-           <NoticeBoard />
+        {/* RIGHT COLUMN: Interactive Widgets (Takes 1/3 width) */}
+        {/* ✅ FIX: Added h-full and flex-col to make sure children expand */}
+        <div className="lg:col-span-1 flex flex-col h-full">
+           
+           {/* 🗳️ LIVE POLLS WIDGET */}
+           {/* Will return NULL if no poll, disappearing completely */}
+           <ActivePollsWidget />
+           
+           {/* 📢 NOTICE BOARD */}
+           {/* ✅ FIX: flex-1 ensures it fills ALL remaining vertical space */}
+           <div className="flex-1 min-h-[400px]">
+               <NoticeBoard />
+           </div>
         </div>
       </div>
 
@@ -277,8 +277,7 @@ export default function DashboardHome() {
   );
 }
 
-/* --- LOCAL SUB COMPONENTS (UPDATED FOR DARK MODE) --- */
-
+// ... (Sub-components StatCard, QuickActionBtn, BreakdownCard remain exactly the same) ...
 function StatCard({ title, amount, icon, variant }) {
   const styles = {
     primary: "bg-indigo-600 text-white shadow-xl shadow-indigo-200 dark:shadow-none ring-2 ring-indigo-600 ring-offset-2 dark:ring-offset-slate-900",
@@ -314,7 +313,6 @@ function StatCard({ title, amount, icon, variant }) {
 }
 
 function QuickActionBtn({ icon, label, sub, color, onClick }) {
-  // Mapping for background and hover states in light/dark
   const colors = {
     rose: "bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 group-hover:bg-rose-100 dark:group-hover:bg-rose-900/30 border-rose-100 dark:border-rose-900/30 hover:border-rose-200 dark:hover:border-rose-800",
     amber: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 border-amber-100 dark:border-amber-900/30 hover:border-amber-200 dark:hover:border-amber-800",
@@ -343,7 +341,6 @@ function QuickActionBtn({ icon, label, sub, color, onClick }) {
 }
 
 function BreakdownCard({ label, amount, color, onClick }) {
-  // FIX: Added 'dark:border-l-{color}' to enforce left border color in dark mode
   const colors = {
     indigo: "border-l-indigo-500 dark:border-l-indigo-500",
     amber: "border-l-amber-500 dark:border-l-amber-500",

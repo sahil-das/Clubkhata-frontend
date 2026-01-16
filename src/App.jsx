@@ -1,5 +1,4 @@
 import React, { Suspense } from "react"; 
-// 1. Added 'Outlet' to imports for the Platform Layout
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 // Providers & Components
@@ -31,12 +30,18 @@ const AuditLogs = React.lazy(() => import("./pages/AuditLogs"));
 const Archives = React.lazy(() => import("./pages/Archives"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
+// ✅ NEW PHASE 2 PAGES
+const Budgeting = React.lazy(() => import("./pages/Budgeting"));
+const Assets = React.lazy(() => import("./pages/Assets"));
+const Polls = React.lazy(() => import("./pages/Polls"));
+
 // Platform Admin Pages
 const PlatformDashboard = React.lazy(() => import("./pages/platform/PlatformDashboard"));
 const ClubManagement = React.lazy(() => import("./pages/platform/ClubManagement"));
 const PlatformReports = React.lazy(() => import("./pages/platform/PlatformReports"));
 const SystemHealth = React.lazy(() => import("./pages/platform/SystemHealth"));
 const PlatformAnnouncements = React.lazy(() => import("./pages/platform/PlatformAnnouncements"));
+
 // Fallback for Suspense
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-white dark:bg-slate-950">
@@ -67,7 +72,7 @@ export default function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<RegisterClub />} />
 
-                {/* 🚀 NEW: PLATFORM ADMIN ROUTES */}
+                {/* PLATFORM ADMIN ROUTES */}
                 <Route 
                   path="/platform" 
                   element={
@@ -99,14 +104,16 @@ export default function App() {
                   <Route path="profile" element={<UserProfile />} />
 
                   {/* AVAILABLE TO EVERYONE */}
-                  <Route path="members-Contribution" element={<PujaContributions />} />
+                  <Route path="members-contribution" element={<PujaContributions />} />
                   <Route path="collections" element={<CollectionsOverview />} />
                   <Route path="donations" element={<Donations />} />
                   <Route path="expenses" element={<Expenses />} />
                   <Route path="archives" element={<Archives />} />
-                  
-                  {/* Members is open to all */}
                   <Route path="members" element={<Members />} />
+
+                  {/* ✅ NEW PHASE 2 ROUTES */}
+                  <Route path="assets" element={<Assets />} />
+                  <Route path="polls" element={<Polls />} />
 
                   {/* SUBSCRIPTIONS */}
                   <Route element={<RequireSubscription />}>
@@ -118,6 +125,9 @@ export default function App() {
                   <Route path="reports" element={<ProtectedRoute role="admin"><Reports /></ProtectedRoute>} />
                   <Route path="settings" element={<ProtectedRoute role="admin"><Settings /></ProtectedRoute>} />
                   <Route path="audit-logs" element={<ProtectedRoute role="admin"><AuditLogs /></ProtectedRoute>} />
+                  
+                  {/* Budgeting is for Admins (and possibly Treasurers if you add that role) */}
+                  <Route path="budgeting" element={<ProtectedRoute role="admin"><Budgeting /></ProtectedRoute>} />
                 </Route>
 
                 {/* CATCH ALL */}

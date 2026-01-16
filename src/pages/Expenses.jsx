@@ -4,6 +4,7 @@ import {
   fetchExpenses as getExpensesAPI, 
   approveExpense, 
   rejectExpense, 
+  getExpenseCategories,
   deleteExpense
 } from "../api/expenses"; 
 import { useAuth } from "../context/AuthContext";
@@ -34,7 +35,7 @@ export default function Expenses() {
   const [searchTerm, setSearchTerm] = useState("");
   const [cycle, setCycle] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
-
+  const [categories, setCategories] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, id: null });
 
   const loadExpenses = async () => {
@@ -56,9 +57,13 @@ export default function Expenses() {
         return;
       }
       
-      const res = await getExpensesAPI();
-      setExpenses(res.data.data);
-
+// 2. Fetch Expenses AND Categories in parallel
+      const [expRes, catRes] = await Promise.all([
+          getExpensesAPI(),
+          getExpenseCategories() // 👈 Fetch from backend
+      ]);
+      setExpenses(expRes.data.data);
+      setCategories(catRes.data || []);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load expenses");
@@ -327,7 +332,7 @@ export default function Expenses() {
 
       {showAddModal && (
         <AddExpenseModal 
-          categories={CATEGORIES} 
+          categories={categories}
           onClose={() => setShowAddModal(false)} 
           refresh={loadExpenses} 
         />

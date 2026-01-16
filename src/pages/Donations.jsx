@@ -6,7 +6,7 @@ import { exportDonationsPDF } from "../utils/pdfExport";
 import { fetchActiveYear  } from "../api/years";
 import { 
   Plus, Search, Trash2, Heart, Receipt, Calendar, 
-  Loader2, Lock, Download, Filter, PlusCircle 
+  Loader2, Lock, Download, Filter, PlusCircle, Package, Coins 
 } from "lucide-react";
 
 import { Button } from "../components/ui/Button";
@@ -61,13 +61,20 @@ export default function Donations() {
     if (activeClub) loadDonations();
   }, [activeClub]);
 
-  const totalAmount = donations.reduce((sum, d) => sum + Number(d.amount), 0);
+  // ✅ FIX: Only sum amounts where type is NOT 'item'
+  const totalCashCollection = donations
+    .filter(d => d.type !== 'item')
+    .reduce((sum, d) => sum + Number(d.amount), 0);
+
+  // Optional: Count items separately just for info
+  const totalItems = donations.filter(d => d.type === 'item').length;
 
   const filteredDonations = useMemo(() => {
       return donations.filter(d => 
         d.donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         d.receiptNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        d.phone?.includes(searchTerm)
+        d.phone?.includes(searchTerm) ||
+        (d.itemDetails?.itemName || "").toLowerCase().includes(searchTerm.toLowerCase())
       );
   }, [donations, searchTerm]);
 
@@ -137,17 +144,32 @@ export default function Donations() {
              <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Public Donations</h1>
                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-                  Collection Cycle: {cycle.name}
+                  Cycle: {cycle.name}
                 </p>
              </div>
            </div>
         </div>
         
         <div className="w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-            {/* TOTAL BADGE */}
-            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 p-3 rounded-xl sm:bg-transparent sm:p-0 sm:border-none sm:text-right flex justify-between sm:block items-center">
-                <p className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider">Total Collected</p>
-                <p className="text-xl sm:text-2xl font-bold font-mono text-amber-700 dark:text-amber-400">₹{totalAmount.toLocaleString()}</p>
+            {/* STATS BADGES */}
+            <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                {/* Cash Total */}
+                <div className="px-3 text-right">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Cash</p>
+                    <p className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                        ₹{totalCashCollection.toLocaleString()}
+                    </p>
+                </div>
+                
+                {/* Items Total (Visual Only) */}
+                {totalItems > 0 && (
+                    <div className="px-3 border-l border-slate-100 dark:border-slate-800 text-right">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Items</p>
+                        <p className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400 flex items-center justify-end gap-1">
+                            {totalItems} <Package size={14}/>
+                        </p>
+                    </div>
+                )}
             </div>
             
             <Button 
@@ -167,7 +189,7 @@ export default function Donations() {
                 <Search className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-500" size={18}/>
                 <input 
                     type="text" 
-                    placeholder="Search donor, phone, receipt..." 
+                    placeholder="Search donor, item, or receipt..." 
                     className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -204,7 +226,7 @@ export default function Donations() {
                     <div className="col-span-4 pl-2">Donor Details</div>
                     <div className="col-span-3">Receipt / Contact</div>
                     <div className="col-span-2">Date</div>
-                    <div className="col-span-2 text-right">Amount</div>
+                    <div className="col-span-2 text-right">Donation</div>
                     <div className="col-span-1 text-right"></div>
                 </div>
 
@@ -216,9 +238,15 @@ export default function Donations() {
                             {/* 1. Donor */}
                             <div className="col-span-4 pl-2 w-full">
                                 <div className="flex items-center gap-3">
-                                   <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold text-sm shrink-0">
-                                     {d.donorName.charAt(0)}
+                                   {/* Avatar / Icon */}
+                                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 transition-colors ${
+                                       d.type === 'item' 
+                                       ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' 
+                                       : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                   }`}>
+                                     {d.type === 'item' ? <Package size={18}/> : d.donorName.charAt(0)}
                                    </div>
+                                   
                                    <div>
                                      <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm md:text-base">{d.donorName}</h3>
                                      <div className="flex items-center gap-1 md:hidden text-xs text-slate-400 dark:text-slate-500 mt-0.5">
@@ -244,14 +272,34 @@ export default function Donations() {
                                 {new Date(d.date).toLocaleDateString()}
                             </div>
 
-                            {/* 4. Amount */}
+                            {/* 4. Amount / Item Details */}
                             <div className="col-span-2 w-full md:text-right flex justify-between md:block items-center">
                                 <span className="md:hidden text-xs font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-500 dark:text-slate-400">
                                     {d.receiptNo || "No Receipt"}
                                 </span>
-                                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
-                                    + ₹{d.amount.toLocaleString()}
-                                </span>
+                                
+                                {d.type === 'item' ? (
+                                    // ITEM DISPLAY
+                                    <div className="flex flex-col md:items-end">
+                                        <span className="font-bold text-slate-700 dark:text-slate-200 text-sm flex items-center gap-1">
+                                            {d.itemDetails?.itemName || "Item"}
+                                        </span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                            {d.itemDetails?.quantity || "1 Unit"}
+                                        </span>
+                                        {/* Optional: Show est value lightly if you want, or hide it */}
+                                        {Number(d.amount) > 0 && (
+                                            <span className="text-[10px] text-slate-400 mt-0.5">
+                                                (Est. ₹{d.amount})
+                                            </span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    // CASH DISPLAY
+                                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                                        + ₹{d.amount.toLocaleString()}
+                                    </span>
+                                )}
                             </div>
 
                             {/* 5. Actions */}

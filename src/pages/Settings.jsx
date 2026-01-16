@@ -5,7 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext"; 
 import { 
   Save, CheckCircle, PlusCircle, Lock, Calendar, 
-  Loader2, Edit3, X, Clock, Coins, ShieldAlert, Power, Info 
+  Loader2, Edit3, X, Clock, Coins, ShieldAlert, Power, Info,
+  Tag, Plus, Trash2 
 } from "lucide-react";
 
 // Design System
@@ -23,11 +24,18 @@ export default function Settings() {
   // UI States
   const [isEditing, setIsEditing] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [isCategoryConfirmModalOpen, setIsCategoryConfirmModalOpen] = useState(false);
   
   // Data States
   const [activeYearId, setActiveYearId] = useState(null);
   const [noActiveCycle, setNoActiveCycle] = useState(false);
   const [hasExistingPayments, setHasExistingPayments] = useState(false);
+  const [categoryToRemove, setCategoryToRemove] = useState(null);
+
+  // Category State
+  const [categories, setCategories] = useState([]);
+  const [newCat, setNewCat] = useState("");
+  const [catLoading, setCatLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -41,7 +49,7 @@ export default function Settings() {
 
   useEffect(() => {
     loadSettings();
-  }, []);
+  }, [activeClub]);
 
   const loadSettings = async () => {
     try {
@@ -54,6 +62,13 @@ export default function Settings() {
         setNoActiveCycle(false);
         setActiveYearId(d._id);
         
+        // Load Categories (Default if empty)
+        setCategories(d.expenseCategories && d.expenseCategories.length > 0 
+            ? d.expenseCategories 
+            : ["Pandal", "Idol", "Light & Sound", "Food/Bhog", "Priest/Puja", "Transport", "Miscellaneous"]
+        );
+
+        // Check for payments to lock frequency
         const financeRes = await api.get("/finance/summary");
         const subscriptionIncome = financeRes.data.data?.breakdown?.subscriptions || 0;
         setHasExistingPayments(subscriptionIncome > 0); 
@@ -89,6 +104,7 @@ export default function Settings() {
           name: `New Year ${new Date().getFullYear()}`,
           openingBalance: 0 
       }));
+      setCategories(["Pandal", "Idol", "Light & Sound", "Food/Bhog", "Priest/Puja", "Transport", "Miscellaneous"]);
   };
 
   const handleFrequencyChange = (newFreq) => {
@@ -104,6 +120,7 @@ export default function Settings() {
     });
   };
 
+  // --- SAVE MAIN SETTINGS ---
   const handleSave = async (e) => {
     e.preventDefault();
     if (activeClub?.role !== 'admin') return;
@@ -111,7 +128,7 @@ export default function Settings() {
     setLoading(true);
     try {
       if (noActiveCycle) {
-        const payload = { ...formData };
+        const payload = { ...formData, expenseCategories: categories };
         if (payload.subscriptionFrequency === 'none') {
             payload.totalInstallments = undefined;
         }
@@ -120,7 +137,7 @@ export default function Settings() {
         toast.success("New Festival Year Started Successfully!");
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        await updateYear(activeYearId, formData);
+        await updateYear(activeYearId, formData); // Only updates config fields
         toast.success("Configuration updated!");
         setIsEditing(false);
         setLoading(false);
@@ -131,6 +148,54 @@ export default function Settings() {
     }
   };
 
+  // --- CATEGORY MANAGEMENT ---
+  const updateCategories = async (newCategories) => {
+      if (noActiveCycle) {
+          setCategories(newCategories); // Just update local state for new year
+          return;
+      }
+      setCatLoading(true);
+      try {
+          // Send ONLY categories to updateYear endpoint
+          await updateYear(activeYearId, { expenseCategories: newCategories });
+          setCategories(newCategories);
+          toast.success("Categories updated");
+      } catch (err) {
+          toast.error("Failed to update categories");
+      } finally {
+          setCatLoading(false);
+      }
+  };
+
+  const addCategory = () => {
+      if (!newCat.trim()) return;
+      if (categories.includes(newCat.trim())) {
+          toast.error("Category already exists");
+          return;
+      }
+      const updated = [...categories, newCat.trim()];
+      updateCategories(updated);
+      setNewCat("");
+  };
+
+  const removeCategory = (catToRemove) => {
+    setCategoryToRemove(catToRemove);
+    setIsCategoryConfirmModalOpen(true);
+};
+
+  const confirmRemoveCategory = () => {
+    const updated = categories.filter(c => c !== categoryToRemove);
+    updateCategories(updated);
+    setIsCategoryConfirmModalOpen(false);
+    setCategoryToRemove(null);
+  };
+
+  const cancelRemoveCategory = () => {
+    setIsCategoryConfirmModalOpen(false);
+    setCategoryToRemove(null);
+  };
+
+  // --- CLOSE YEAR ---
   const handleCloseYear = async () => {
     try {
       await closeYear(activeYearId);
@@ -235,6 +300,46 @@ export default function Settings() {
                                 <p className="text-xs text-slate-400 dark:text-slate-500 italic mt-1">No recurring revenue projection.</p>
                             </div>
                         )}
+                    </div>
+                </div>
+            </Card>
+
+            {/* EXPENSE CATEGORIES CARD */}
+            <Card className="border-slate-200 dark:border-slate-800">
+                <div className="p-6">
+                    <h3 className="font-bold text-lg flex items-center gap-2 text-slate-800 dark:text-white mb-4">
+                        <Tag size={18} className="text-indigo-500"/> Expense Categories
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                        Define the categories available for Expenses and Budgets.
+                    </p>
+
+                    <div className="flex gap-2 mb-4">
+                        <Input 
+                            value={newCat}
+                            onChange={(e) => setNewCat(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && addCategory()}
+                            placeholder="Add new category..."
+                            disabled={catLoading}
+                            className="bg-slate-50 dark:bg-slate-900"
+                        />
+                        <Button onClick={addCategory} disabled={catLoading} leftIcon={<Plus size={18}/>} />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        {categories.map((cat) => (
+                            <div key={cat} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                                {cat}
+                                <button 
+                                    onClick={() => removeCategory(cat)}
+                                    className="text-slate-400 hover:text-red-500 transition-colors"
+                                    disabled={catLoading}
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        ))}
+                        {categories.length === 0 && <span className="text-slate-400 italic text-sm">No categories defined.</span>}
                     </div>
                 </div>
             </Card>
@@ -440,6 +545,15 @@ export default function Settings() {
         message="This will archive all current data. You will be able to view it in Archives, but no new transactions can be added until a new year is started."
         confirmText="Yes, Close Year"
         isDangerous={true}
+      />
+
+      {/* CONFIRM REMOVE CATEGORY MODAL */}
+      <ConfirmModal
+        isOpen={isCategoryConfirmModalOpen}
+        title="Remove Category"
+        message={`Remove "${categoryToRemove}" from the list? \n(Existing expenses with this category will NOT be deleted, but you won't be able to select it for new ones.)`}
+        onConfirm={confirmRemoveCategory}
+        onCancel={cancelRemoveCategory}
       />
     </div>
   );

@@ -1,6 +1,8 @@
 import { 
   LayoutDashboard, Users, Wallet, Heart, Sparkles, PieChart,
-  History, Settings, FileText, Archive, CalendarRange 
+  History, Settings, FileText, Archive, CalendarRange,
+  // ✅ NEW ICONS
+  Vote, PiggyBank, Package
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -9,6 +11,12 @@ const NAV_ITEMS = [
     path: "/", 
     icon: LayoutDashboard,
     roles: ["admin", "member"] 
+  },
+  {
+    label: "Community Polls", // ✅ NEW: Phase 2
+    path: "/polls",
+    icon: Vote,
+    roles: ["admin", "member"]
   },
   { 
     label: "Members", 
@@ -47,6 +55,18 @@ const NAV_ITEMS = [
     roles: ["admin", "member"] 
   },
   {
+    label: "Budget Planning", // ✅ NEW: Phase 2
+    path: "/budgeting",
+    icon: PiggyBank, // Using PiggyBank to signify Savings/Planning
+    roles: ["admin"] // Usually restricted to Admin
+  },
+  {
+    label: "Asset Registry", // ✅ NEW: Phase 2
+    path: "/assets",
+    icon: Package,
+    roles: ["admin", "member"] // Members can view, Admins edit
+  },
+  {
     label: "Audit Logs",
     path: "/audit-logs",
     icon: History,
@@ -58,7 +78,7 @@ const NAV_ITEMS = [
     icon: Archive,
     roles: ["admin", "member"] 
   },
-  // Admin Only
+  // Admin Only Section
   { 
     label: "Reports", 
     path: "/reports", 
