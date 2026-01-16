@@ -119,7 +119,8 @@ export default function AuditLogs() {
   const sanitizeLogsForExport = (logList) => {
     const hiddenFields = [
         "subscriptionId", "installment", "memberId", "userId", 
-        "expenseId", "club", "__v", "_id", "createdAt", "updatedAt"
+        "expenseId", "club", "__v", "_id", "createdAt", "updatedAt",
+        "donationId" // 👈 Added: Hide from PDF Export
     ];
 
     return logList.map(log => {
@@ -415,7 +416,7 @@ function renderDetails(details) {
   const ignoredKeys = [
       "expenseId", "memberId", "userId", "_id", "club", 
       "subscriptionId", "installment", "__v", "createdAt", "updatedAt",
-      "memberName"
+      "memberName", "donationId" // 👈 Added: Hide from UI List
   ];
 
   return Object.entries(details).map(([key, value]) => {

@@ -1,23 +1,19 @@
 import { 
   LayoutDashboard, Users, Wallet, Heart, Sparkles, PieChart,
   History, Settings, FileText, Archive, CalendarRange,
-  // ✅ NEW ICONS
   Vote, PiggyBank, Package
 } from "lucide-react";
 
 const NAV_ITEMS = [
+  // 1. Overview
   { 
     label: "Dashboard", 
     path: "/", 
     icon: LayoutDashboard,
     roles: ["admin", "member"] 
   },
-  {
-    label: "Community Polls", // ✅ NEW: Phase 2
-    path: "/polls",
-    icon: Vote,
-    roles: ["admin", "member"]
-  },
+
+  // 2. People & Engagement
   { 
     label: "Members", 
     path: "/members", 
@@ -25,21 +21,25 @@ const NAV_ITEMS = [
     roles: ["admin", "member"] 
   },
   {
+    label: "Community Polls",
+    path: "/polls",
+    icon: Vote,
+    roles: ["admin", "member"]
+  },
+
+  // 3. Personal Finance (For the logged-in user)
+  {
     label: "My Subscriptions",
     path: "/contributions",
     icon: CalendarRange,
     roles: ["admin", "member"]
   },
+
+  // 4. Club Income (Money coming in)
   { 
     label: "Member's Contribution", 
     path: "/members-contribution", 
     icon: Sparkles,
-    roles: ["admin", "member"] 
-  },
-  { 
-    label: "Collections Overview", 
-    path: "/collections", 
-    icon: Wallet,
     roles: ["admin", "member"] 
   },
   { 
@@ -48,6 +48,8 @@ const NAV_ITEMS = [
     icon: Heart,
     roles: ["admin", "member"] 
   },
+
+  // 5. Club Expenses & Planning (Money going out)
   { 
     label: "Expenses", 
     path: "/expenses", 
@@ -55,16 +57,32 @@ const NAV_ITEMS = [
     roles: ["admin", "member"] 
   },
   {
-    label: "Budget Planning", // ✅ NEW: Phase 2
+    label: "Budget Planning",
     path: "/budgeting",
-    icon: PiggyBank, // Using PiggyBank to signify Savings/Planning
-    roles: ["admin"] // Usually restricted to Admin
+    icon: PiggyBank,
+    roles: ["admin"]
   },
+  { 
+    label: "Collections Overview", 
+    path: "/collections", 
+    icon: Wallet,
+    roles: ["admin", "member"] 
+  },
+
+  // 6. Assets/Inventory
   {
-    label: "Asset Registry", // ✅ NEW: Phase 2
+    label: "Asset Registry",
     path: "/assets",
     icon: Package,
-    roles: ["admin", "member"] // Members can view, Admins edit
+    roles: ["admin", "member"]
+  },
+
+  // 7. Admin Tools & History
+  { 
+    label: "Reports", 
+    path: "/reports", 
+    icon: PieChart,
+    roles: ["admin"] 
   },
   {
     label: "Audit Logs",
@@ -77,13 +95,6 @@ const NAV_ITEMS = [
     path: "/archives", 
     icon: Archive,
     roles: ["admin", "member"] 
-  },
-  // Admin Only Section
-  { 
-    label: "Reports", 
-    path: "/reports", 
-    icon: PieChart,
-    roles: ["admin"] 
   },
   { 
     label: "Settings", 
