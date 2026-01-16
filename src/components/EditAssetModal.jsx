@@ -109,8 +109,9 @@ export default function EditAssetModal({ asset, onClose, refresh }) {
 
         <ConfirmModal
           isOpen={isConfirmModalOpen}
+          onClose={cancelDelete} // 👈 ADD THIS LINE
           title="Confirm Deletion"
-          message="Are you sure you want to remove this item? This action cannot be undone."
+          message="Are you sure you want to remove this item?..."
           onConfirm={confirmDelete}
           onCancel={cancelDelete}
         />
