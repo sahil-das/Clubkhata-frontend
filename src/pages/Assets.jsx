@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
-import { getAssets, deleteAsset } from "../api/assets"; // Ensure these exist in api/assets.js
+import { getAssets, deleteAsset } from "../api/assets"; 
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { exportAssetsPDF } from "../utils/pdfExport";
 import { 
-  Package, Plus, Search, MapPin, Box, Edit2, Trash2, Download, Filter 
+  Package, Plus, Search, MapPin, Box, Edit2, Trash2, Download, Filter,
+  Loader2 // 1. Imported Loader2
 } from "lucide-react";
 
 // Components
@@ -22,7 +23,7 @@ export default function Assets() {
   
   // Modal States
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingAsset, setEditingAsset] = useState(null); // If not null, show Edit Modal
+  const [editingAsset, setEditingAsset] = useState(null); 
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, id: null });
 
   // 1. Fetch Data
@@ -52,7 +53,7 @@ export default function Assets() {
   }, [assets, search]);
 
   const totalValue = assets.reduce((sum, a) => sum + (a.estimatedValue || 0), 0);
-  const totalItems = assets.reduce((sum, a) => sum + (a.quantity || 0), 0);
+  // const totalItems = assets.reduce((sum, a) => sum + (a.quantity || 0), 0); // Unused currently but kept for reference
 
   // 3. Handlers
   const handleDelete = async () => {
@@ -66,6 +67,15 @@ export default function Assets() {
       setConfirmDelete({ isOpen: false, id: null });
     }
   };
+
+  // 4. Loading State
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-blue-600 dark:text-blue-400">
+        <Loader2 className="animate-spin w-10 h-10"/>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in">
@@ -179,7 +189,7 @@ export default function Assets() {
         </div>
         
         {/* Empty State */}
-        {filteredAssets.length === 0 && !loading && (
+        {filteredAssets.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                 <Filter size={48} className="mb-4 opacity-20" />
                 <p>No assets found matching your search.</p>
