@@ -3,7 +3,8 @@ import { getBudgetAnalysis, deleteBudget } from "../api/budget";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { 
-  PieChart, Plus, AlertTriangle, CheckCircle, Download, Edit2, Trash2, TrendingUp, AlertCircle, ArrowRight
+  PieChart, Plus, AlertTriangle, CheckCircle, Download, Edit2, Trash2, 
+  TrendingUp, AlertCircle, ArrowRight, Loader2 // 👈 Imported Loader2
 } from "lucide-react";
 import { exportBudgetPDF } from "../utils/pdfExport";
 import SetBudgetModal from "../components/SetBudgetModal";
@@ -12,10 +13,10 @@ import ConfirmModal from "../components/ui/ConfirmModal";
 export default function Budgeting() {
   const { activeClub } = useAuth();
   const toast = useToast();
-  
+   
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+   
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null); 
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, id: null }); 
@@ -60,6 +61,15 @@ export default function Budgeting() {
   // 🔹 SEPARATE LISTS
   const plannedBudgets = data.filter(item => !item.isUnplanned);
   const unplannedExpenses = data.filter(item => item.isUnplanned);
+
+  // ⏳ LOADING STATE
+  if (loading) {
+      return (
+        <div className="min-h-[60vh] flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+           <Loader2 className="animate-spin w-10 h-10"/>
+        </div>
+      );
+  }
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in">
@@ -184,7 +194,7 @@ export default function Budgeting() {
         {showModal && (
             <SetBudgetModal 
                 existingCategory={editingItem?.category} 
-                prefillAmount={editingItem?.amount}     
+                prefillAmount={editingItem?.amount}      
                 onClose={() => { setShowModal(false); setEditingItem(null); }} 
                 refresh={fetchData} 
             />
