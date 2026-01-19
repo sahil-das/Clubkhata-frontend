@@ -49,35 +49,40 @@ export default function AddVendorModal({ isOpen, onClose, onSuccess, initialData
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Edit Vendor" : "Add New Vendor"} maxWidth="max-w-lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Edit Vendor Details" : "Add New Vendor"} maxWidth="max-w-lg">
       <form onSubmit={handleSubmit} className="space-y-5 pb-2">
         
         {/* Name Input */}
         <div>
-           <div className="flex items-center gap-2 mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+           <div className="flex items-center gap-2 mb-2 text-sm font-bold text-gray-700 dark:text-gray-300">
               <User size={16} className="text-blue-500" /> Vendor Name
            </div>
            <Input required placeholder="e.g. Raju Tent House" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
         </div>
 
-        {/* Category & Phone (Stack on mobile, row on desktop) */}
+        {/* Category & Phone */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="flex items-center gap-2 mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="flex items-center gap-2 mb-2 text-sm font-bold text-gray-700 dark:text-gray-300">
                  <Tag size={16} className="text-orange-500" /> Category
               </label>
-              <select 
-                className="w-full p-2.5 border rounded-md bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all h-11"
-                value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
-              >
-                {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
+              <div className="relative">
+                <select 
+                    className="w-full p-2.5 border rounded-lg bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all h-[42px] appearance-none"
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                >
+                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+              </div>
             </div>
 
             <div>
-               <div className="flex items-center gap-2 mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  <Phone size={16} className="text-green-500" /> Phone
+               <div className="flex items-center gap-2 mb-2 text-sm font-bold text-gray-700 dark:text-gray-300">
+                  <Phone size={16} className="text-green-500" /> Contact Number
                </div>
                <Input required placeholder="98765..." value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
             </div>
@@ -85,24 +90,24 @@ export default function AddVendorModal({ isOpen, onClose, onSuccess, initialData
 
         {/* Address */}
         <div>
-           <div className="flex items-center gap-2 mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-              <MapPin size={16} className="text-red-500" /> Address
+           <div className="flex items-center gap-2 mb-2 text-sm font-bold text-gray-700 dark:text-gray-300">
+              <MapPin size={16} className="text-red-500" /> Shop Address
            </div>
            <Input placeholder="Shop No, Area..." value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
         </div>
 
         {/* UPI ID */}
         <div>
-           <div className="flex items-center gap-2 mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+           <div className="flex items-center gap-2 mb-2 text-sm font-bold text-gray-700 dark:text-gray-300">
               <CreditCard size={16} className="text-purple-500" /> UPI ID (Optional)
            </div>
-           <Input placeholder="user@upi" value={formData.upiId} onChange={(e) => setFormData({...formData, upiId: e.target.value})} />
+           <Input placeholder="username@upi" value={formData.upiId} onChange={(e) => setFormData({...formData, upiId: e.target.value})} />
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t dark:border-slate-700">
+        <div className="flex justify-end gap-3 pt-6 border-t dark:border-slate-700">
           <Button variant="outline" onClick={onClose} type="button" className="flex-1 md:flex-none">Cancel</Button>
-          <Button loading={loading} type="submit" className="flex-1 md:flex-none px-8 bg-blue-600">
+          <Button loading={loading} type="submit" className="flex-1 md:flex-none px-8 bg-blue-600 hover:bg-blue-700">
             {initialData ? "Save Changes" : "Save Vendor"}
           </Button>
         </div>

@@ -80,7 +80,7 @@ const NAV_ITEMS = [
     label: "Vendor Hiring", 
     path: "/rentals", 
     icon: Briefcase, // Make sure to import this
-    roles: ["admin", "treasurer"] 
+    roles: ["admin", "treasurer", "member"] 
   },
   // 7. Admin Tools & History
   { 

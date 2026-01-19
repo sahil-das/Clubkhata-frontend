@@ -26,6 +26,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, activeYea
         deliveryDate: initialData.deliveryDate ? initialData.deliveryDate.split('T')[0] : "",
         returnDate: initialData.returnDate ? initialData.returnDate.split('T')[0] : "",
         items: initialData.items.map(i => ({
+            _id: i._id,
             itemName: i.itemName, quantity: i.quantity, rate: i.rate, days: i.days
         }))
       });
@@ -70,17 +71,17 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, activeYea
     <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Edit Rental Order" : "New Rental Order"} maxWidth="max-w-4xl">
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
         
-        {/* Scrollable Content Area */}
+        {/* Scrollable Content */}
         <div className="space-y-6 pb-24"> 
             
             {/* Vendor & Dates Section */}
-            <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg border dark:border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-xl border dark:border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="md:col-span-1">
-                    <label className="flex items-center gap-2 text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label className="flex items-center gap-2 text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">
                         <Store size={16} className="text-blue-500"/> Select Vendor
                     </label>
                     <select 
-                        className="w-full p-2.5 border rounded-md bg-white dark:bg-slate-900 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        className="w-full p-2.5 rounded-lg border bg-white dark:bg-slate-900 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all"
                         value={formData.vendorId}
                         onChange={e => setFormData({...formData, vendorId: e.target.value})}
                         disabled={!!initialData}
@@ -91,14 +92,14 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, activeYea
                 </div>
                 
                 <div className="md:col-span-1">
-                    <label className="flex items-center gap-2 text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label className="flex items-center gap-2 text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">
                         <Calendar size={16} className="text-green-500"/> Delivery Date
                     </label>
                     <Input type="date" value={formData.deliveryDate} onChange={e => setFormData({...formData, deliveryDate: e.target.value})} />
                 </div>
 
                 <div className="md:col-span-1">
-                    <label className="flex items-center gap-2 text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label className="flex items-center gap-2 text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">
                         <Calendar size={16} className="text-orange-500"/> Return Date
                     </label>
                     <Input type="date" value={formData.returnDate} onChange={e => setFormData({...formData, returnDate: e.target.value})} />
@@ -107,77 +108,79 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, activeYea
 
             {/* Items Section */}
             <div>
-                <div className="flex justify-between items-center mb-2">
-                    <h4 className="flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
-                        <Package size={18} /> Rental Items
+                <div className="flex justify-between items-center mb-3 px-1">
+                    <h4 className="flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200">
+                        <Package size={18} className="text-indigo-500" /> Rental Items
                     </h4>
-                    <span className="text-xs text-gray-400 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded-full">{formData.items.length} Items</span>
+                    <span className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full">{formData.items.length} Items</span>
                 </div>
 
-                {/* Desktop Headers (Hidden on Mobile) */}
-                <div className="hidden md:grid grid-cols-12 gap-2 bg-gray-100 dark:bg-slate-800 p-2 text-xs font-bold text-gray-500 uppercase rounded-t-lg">
-                    <div className="col-span-4">Item Name</div>
+                {/* Desktop Headers */}
+                <div className="hidden md:grid grid-cols-12 gap-4 bg-gray-100 dark:bg-slate-800 p-3 text-xs font-bold text-gray-500 uppercase rounded-t-lg border-b dark:border-slate-700">
+                    <div className="col-span-4 pl-2">Item Name</div>
                     <div className="col-span-2 text-center">Qty</div>
                     <div className="col-span-2 text-center">Rate (₹)</div>
                     <div className="col-span-2 text-center">Days</div>
                     <div className="col-span-2 text-center">Total</div>
                 </div>
 
-                <div className="space-y-3 md:space-y-0">
+                <div className="space-y-4 md:space-y-0">
                     {formData.items.map((item, i) => (
-                        <div key={i} className="bg-white dark:bg-slate-900 border dark:border-slate-700 rounded-lg p-3 md:p-2 md:rounded-none md:border-0 md:border-b md:grid md:grid-cols-12 md:gap-2 md:items-center relative shadow-sm md:shadow-none">
+                        <div key={i} className="bg-white dark:bg-slate-900 border dark:border-slate-700 rounded-xl p-4 md:p-3 md:rounded-none md:border-0 md:border-b md:grid md:grid-cols-12 md:gap-4 md:items-center relative shadow-sm md:shadow-none ring-1 ring-slate-100 dark:ring-0">
                             
-                            {/* Mobile: Delete Button Top Right */}
+                            {/* Mobile Delete */}
                             <button 
                                 type="button" 
                                 onClick={() => setFormData({...formData, items: formData.items.filter((_, idx) => idx !== i)})} 
-                                className="absolute top-2 right-2 p-1.5 text-red-500 md:hidden bg-red-50 rounded-full"
+                                className="absolute top-3 right-3 p-1.5 text-red-500 md:hidden bg-red-50 dark:bg-red-900/20 rounded-full"
                             >
                                 <Trash2 size={14}/>
                             </button>
 
                             {/* Item Name */}
-                            <div className="md:col-span-4 mb-2 md:mb-0 pr-8 md:pr-0">
-                                <label className="text-xs text-gray-400 font-bold uppercase md:hidden mb-1 block">Item Name</label>
-                                <Input placeholder="e.g. 50 Chairs" value={item.itemName} onChange={e => updateItem(i, "itemName", e.target.value)} />
+                            <div className="md:col-span-4 mb-3 md:mb-0 pr-8 md:pr-0">
+                                <label className="text-[10px] text-gray-400 font-bold uppercase md:hidden mb-1 block">Item Description</label>
+                                <Input placeholder="e.g. 50 Plastic Chairs" value={item.itemName} onChange={e => updateItem(i, "itemName", e.target.value)} />
                             </div>
 
-                            {/* Numbers Row on Mobile */}
-                            <div className="grid grid-cols-3 gap-2 md:contents">
+                            {/* Mobile Grid for Inputs */}
+                            <div className="grid grid-cols-3 gap-3 md:contents">
                                 <div className="md:col-span-2">
                                      <label className="text-[10px] text-gray-400 font-bold uppercase md:hidden block text-center mb-1">Qty</label>
-                                     <Input type="number" placeholder="Qty" className="text-center" value={item.quantity} onChange={e => updateItem(i, "quantity", e.target.value)} />
+                                     <Input type="number" placeholder="0" className="text-center font-bold" value={item.quantity} onChange={e => updateItem(i, "quantity", e.target.value)} />
                                 </div>
                                 <div className="md:col-span-2">
                                      <label className="text-[10px] text-gray-400 font-bold uppercase md:hidden block text-center mb-1">Rate</label>
-                                     <Input type="number" placeholder="Rate" className="text-center" value={item.rate} onChange={e => updateItem(i, "rate", e.target.value)} />
+                                     <Input type="number" placeholder="₹" className="text-center" value={item.rate} onChange={e => updateItem(i, "rate", e.target.value)} />
                                 </div>
                                 <div className="md:col-span-2">
                                      <label className="text-[10px] text-gray-400 font-bold uppercase md:hidden block text-center mb-1">Days</label>
-                                     <Input type="number" placeholder="Days" className="text-center" value={item.days} onChange={e => updateItem(i, "days", e.target.value)} />
+                                     <Input type="number" placeholder="1" className="text-center" value={item.days} onChange={e => updateItem(i, "days", e.target.value)} />
                                 </div>
                             </div>
 
                             {/* Total & Desktop Delete */}
-                            <div className="md:col-span-2 flex items-center justify-between md:pl-2 mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 dark:border-slate-700">
-                                <span className="text-xs font-bold text-gray-400 uppercase md:hidden">Line Total:</span>
-                                <span className="font-bold text-sm text-blue-600 dark:text-blue-400">
-                                    ₹{(item.quantity * item.rate * item.days).toFixed(0)}
-                                </span>
-                                <button 
-                                    type="button" 
-                                    onClick={() => setFormData({...formData, items: formData.items.filter((_, idx) => idx !== i)})} 
-                                    className="hidden md:block p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                                >
-                                    <Trash2 size={16}/>
-                                </button>
+                            <div className="md:col-span-2 flex items-center justify-between md:justify-center mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 border-dashed border-gray-200 dark:border-slate-700">
+                                <span className="text-xs font-bold text-gray-400 uppercase md:hidden">Subtotal:</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold text-sm text-blue-600 dark:text-blue-400">
+                                        ₹{(item.quantity * item.rate * item.days).toFixed(0)}
+                                    </span>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setFormData({...formData, items: formData.items.filter((_, idx) => idx !== i)})} 
+                                        className="hidden md:block p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors ml-4"
+                                    >
+                                        <Trash2 size={16}/>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
                 
                 <div className="mt-4">
-                     <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, items: [...formData.items, { itemName: "", quantity: 1, rate: 0, days: 1 }]})} className="w-full border-dashed py-3 md:py-2">
+                     <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, items: [...formData.items, { itemName: "", quantity: 1, rate: 0, days: 1 }]})} className="w-full border-dashed py-3 md:py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800">
                         <Plus size={16} className="mr-1" /> Add New Item
                     </Button>
                 </div>
@@ -185,17 +188,17 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, activeYea
         </div>
 
         {/* ✅ STICKY FOOTER */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t dark:border-slate-700 p-4 md:px-6 flex justify-between items-center z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] rounded-b-lg">
+        <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-t dark:border-slate-700 p-4 md:px-6 flex justify-between items-center z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-b-lg">
             <div className="flex flex-col">
-                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total Est.</span>
-                <span className="text-2xl md:text-3xl font-bold text-blue-600 flex items-center">
-                    <IndianRupee size={20} className="mr-1" /> {calculateTotal().toLocaleString('en-IN')}
+                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Estimated Total</span>
+                <span className="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-white flex items-center">
+                    <IndianRupee size={24} className="mr-1 text-gray-400" /> {calculateTotal().toLocaleString('en-IN')}
                 </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
                 <Button variant="ghost" onClick={onClose} type="button" className="hidden md:inline-flex">Cancel</Button>
-                <Button loading={loading} type="submit" className="px-6 md:px-8 bg-blue-600 hover:bg-blue-700 shadow-blue-200 dark:shadow-none">
-                    {initialData ? "Update" : "Create"}
+                <Button loading={loading} type="submit" className="px-6 md:px-8 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none">
+                    {initialData ? "Update Order" : "Confirm Booking"}
                 </Button>
             </div>
         </div>

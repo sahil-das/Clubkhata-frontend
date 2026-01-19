@@ -56,3 +56,5 @@ export const returnItems = async (id, returnedItems) => {
   const response = await axios.post(`/rentals/orders/${id}/return`, { returnedItems }, getHeaders());
   return response.data;
 };
+export const deleteRentalPayment = async (orderId, paymentId) => 
+  (await axios.delete(`/rentals/orders/${orderId}/payments/${paymentId}`, getHeaders())).data;
