@@ -34,6 +34,7 @@ const NotFound = React.lazy(() => import("./pages/NotFound"));
 const Budgeting = React.lazy(() => import("./pages/Budgeting"));
 const Assets = React.lazy(() => import("./pages/Assets"));
 const Polls = React.lazy(() => import("./pages/Polls"));
+const VendorHiring = React.lazy(() => import("./pages/VendorHiring")); // <--- NEW IMPORT
 
 // Platform Admin Pages
 const PlatformDashboard = React.lazy(() => import("./pages/platform/PlatformDashboard"));
@@ -114,6 +115,7 @@ export default function App() {
                   {/* ✅ NEW PHASE 2 ROUTES */}
                   <Route path="assets" element={<Assets />} />
                   <Route path="polls" element={<Polls />} />
+                  <Route path="rentals" element={<VendorHiring />} /> {/* <--- NEW ROUTE */}
 
                   {/* SUBSCRIPTIONS */}
                   <Route element={<RequireSubscription />}>
@@ -126,7 +128,7 @@ export default function App() {
                   <Route path="settings" element={<ProtectedRoute role="admin"><Settings /></ProtectedRoute>} />
                   <Route path="audit-logs" element={<ProtectedRoute role="admin"><AuditLogs /></ProtectedRoute>} />
                   
-                  {/* Budgeting is for Admins (and possibly Treasurers if you add that role) */}
+                  {/* Budgeting is for Admins */}
                   <Route path="budgeting" element={<ProtectedRoute role="admin"><Budgeting /></ProtectedRoute>} />
                 </Route>
 

@@ -22,7 +22,6 @@ import AddExpenseModal from "../components/AddExpenseModal";
 import CreateYearModal from "../components/CreateYearModal"; 
 import { exportExpensesPDF } from "../utils/pdfExport"; 
 import { fetchActiveYear } from "../api/years";
-const CATEGORIES = ["Pandal", "Idol", "Light & Sound", "Food/Bhog", "Priest/Puja", "Transport", "Miscellaneous"];
 
 export default function Expenses() {
   const { activeClub } = useAuth(); 
@@ -57,10 +56,10 @@ export default function Expenses() {
         return;
       }
       
-// 2. Fetch Expenses AND Categories in parallel
+      // Fetch Expenses AND Categories in parallel
       const [expRes, catRes] = await Promise.all([
           getExpensesAPI(),
-          getExpenseCategories() // 👈 Fetch from backend
+          getExpenseCategories()
       ]);
       setExpenses(expRes.data.data);
       setCategories(catRes.data || []);
@@ -290,27 +289,34 @@ export default function Expenses() {
                                 <StatusBadge status={e.status} />
                             </div>
                             <div className="col-span-2 w-full flex justify-end items-center gap-2 mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-50 dark:border-slate-800">
-                                {activeClub?.role === "admin" && (
-                                    <>
-                                        {e.status === "pending" && (
-                                            <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-sm mr-2">
-                                                <button onClick={() => handleStatus(e._id, "approved")} className="p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition" title="Approve">
-                                                    <CheckCircle size={18} />
-                                                </button>
-                                                <div className="w-px bg-slate-200 dark:bg-slate-700"></div>
-                                                <button onClick={() => handleStatus(e._id, "rejected")} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition" title="Reject">
-                                                    <XCircle size={18} />
-                                                </button>
-                                            </div>
-                                        )}
-                                        <button 
-                                            onClick={() => confirmDeletion(e._id)}
-                                            className="p-2 text-slate-300 dark:text-slate-600 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
-                                            aria-label="Delete Expense"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </>
+                                {/* ✅ UPDATED: Lock System Expenses */}
+                                {e.isSystemGenerated ? (
+                                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 italic flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 select-none" title="Linked to Rental Order">
+                                        <Lock size={10} /> Auto-generated
+                                    </span>
+                                ) : (
+                                    activeClub?.role === "admin" && (
+                                        <>
+                                            {e.status === "pending" && (
+                                                <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-sm mr-2">
+                                                    <button onClick={() => handleStatus(e._id, "approved")} className="p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition" title="Approve">
+                                                        <CheckCircle size={18} />
+                                                    </button>
+                                                    <div className="w-px bg-slate-200 dark:bg-slate-700"></div>
+                                                    <button onClick={() => handleStatus(e._id, "rejected")} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition" title="Reject">
+                                                        <XCircle size={18} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <button 
+                                                onClick={() => confirmDeletion(e._id)}
+                                                className="p-2 text-slate-300 dark:text-slate-600 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                                                aria-label="Delete Expense"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </>
+                                    )
                                 )}
                             </div>
                         </div>

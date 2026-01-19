@@ -79,8 +79,8 @@ export default function Archives() {
     }
 
     exportHistoryCyclePDF({
-      clubName: activeClub?.clubName || "Club Archive Record",
-      cycle: selectedYear,
+      clubName: activeClub?.clubName || activeClub?.name || "Club Archive Record",
+      cycle: info,
       frequency: frequency,
       
       summary: {
@@ -100,13 +100,28 @@ export default function Archives() {
       donations: (records.donations || []).map(d => ({
          donorName: d.donorName || "Anonymous",
          date: d.date || d.createdAt,
-         amount: parse(d.amount)
+         amount: parse(d.amount),
+         type: d.type,
+         itemDetails: d.itemDetails
       })),
 
       expenses: (records.expenses || []).map(e => ({
          title: e.title,
          date: e.date || e.createdAt,
          amount: parse(e.amount)
+      })),
+
+      // ✅ RENTALS MAPPING (Updated)
+      rentals: (records.rentals || []).map(r => ({
+         vendorName: r.vendor?.name || "Unknown Vendor",
+         status: r.status,
+         totalBill: parse(r.totalEstimatedAmount),
+         paid: parse(r.advancePaid),
+         items: (r.items || []).map(i => ({
+             name: i.itemName,
+             qty: i.quantity,
+             cost: parse(i.totalCost) // Ensure this is a number for formatting
+         }))
       }))
     });
   };
@@ -149,13 +164,13 @@ export default function Archives() {
                          <Calendar size={20} />
                       </div>
                       <div>
-                         <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{year.name}</h3>
-                         <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                            {new Date(year.startDate).getFullYear()} • 
-                            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/30">
-                              Closed
-                            </span>
-                         </p>
+                          <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{year.name}</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                             {new Date(year.startDate).getFullYear()} • 
+                             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/30">
+                               Closed
+                             </span>
+                          </p>
                       </div>
                   </div>
 
@@ -170,9 +185,9 @@ export default function Archives() {
                {/* EXPANDED DETAILS */}
                {selectedYear?._id === year._id && (
                   <div className="bg-slate-50/50 dark:bg-slate-950/30 border-t border-slate-100 dark:border-slate-800 p-6 animate-slide-up">
-                     {detailLoading || !yearDetails ? (
+                      {detailLoading || !yearDetails ? (
                         <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary-600 dark:text-primary-400" /></div>
-                     ) : (
+                      ) : (
                         <div className="space-y-6">
                            
                            {/* METRICS */}
@@ -181,7 +196,6 @@ export default function Archives() {
                               <DetailBox label="Total Income" amount={yearDetails.summary.income.total} color="text-emerald-600 dark:text-emerald-400" icon={<TrendingUp size={14}/>} />
                               <DetailBox label="Total Expenses" amount={yearDetails.summary.expense} color="text-rose-600 dark:text-rose-400" icon={<TrendingDown size={14}/>} />
                               
-                              {/* ⚠️ INTELLIGENT BALANCE BOX */}
                               <DetailBox 
                                 label={yearDetails.summary.hasDiscrepancy ? "Stored Balance" : "Closing Balance"}
                                 amount={yearDetails.summary.netBalance} 
@@ -192,42 +206,28 @@ export default function Archives() {
                               />
                            </div>
 
-                           {/* ERROR ALERT */}
-                           {yearDetails.summary.hasDiscrepancy && (
-                             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-lg p-3 flex items-start gap-3 text-sm text-amber-800 dark:text-amber-300">
-                                <AlertTriangle className="mt-0.5 shrink-0" size={16} />
-                                <div>
-                                  <p className="font-bold">Calculation Mismatch Detected</p>
-                                  <p className="opacity-90 mt-1">
-                                    The records sum to <strong>₹{yearDetails.summary.calculatedBalance}</strong>, 
-                                    but the database stored <strong>₹{yearDetails.summary.netBalance}</strong>. 
-                                    Please verify your manual entries.
-                                  </p>
-                                </div>
-                             </div>
-                           )}
-
                            {/* BREAKDOWN */}
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <Card noPadding className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                                     <div className="p-3 border-b border-slate-50 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-300 text-xs uppercase bg-slate-50/50 dark:bg-slate-800/50">Income Sources</div>
                                     <div className="p-3 space-y-2">
-                                        {yearDetails.info.subscriptionFrequency !== 'none' && (
-                                            <Row 
-                                                label={yearDetails.info.subscriptionFrequency === 'monthly' ? "Monthly Collection" : "Weekly Collection"} 
-                                                value={yearDetails.summary.income.subscriptions} 
-                                            />
-                                        )}
-                                        <Row label="Puja Fees" value={yearDetails.summary.income.fees} />
-                                        <Row label="Donations" value={yearDetails.summary.income.donations} />
+                                            {yearDetails.info.subscriptionFrequency !== 'none' && (
+                                                <Row 
+                                                    label={yearDetails.info.subscriptionFrequency === 'monthly' ? "Monthly Collection" : "Weekly Collection"} 
+                                                    value={yearDetails.summary.income.subscriptions} 
+                                                />
+                                            )}
+                                            <Row label="Puja Fees" value={yearDetails.summary.income.fees} />
+                                            <Row label="Donations" value={yearDetails.summary.income.donations} />
                                     </div>
                                 </Card>
                                 <Card noPadding className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                                     <div className="p-3 border-b border-slate-50 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-300 text-xs uppercase bg-slate-50/50 dark:bg-slate-800/50">Record Counts</div>
                                     <div className="p-3 space-y-2">
-                                        <Row label="Expense Bills" value={yearDetails.records.expenses.length} isCount />
-                                        <Row label="Fee Records" value={yearDetails.records.fees.length} isCount />
-                                        <Row label="Donations" value={yearDetails.records.donations.length} isCount />
+                                            <Row label="Expense Bills" value={yearDetails.records.expenses.length} isCount />
+                                            <Row label="Fee Records" value={yearDetails.records.fees.length} isCount />
+                                            <Row label="Donations" value={yearDetails.records.donations.length} isCount />
+                                            <Row label="Rental Orders" value={yearDetails.records.rentals?.length || 0} isCount />
                                     </div>
                                 </Card>
                            </div>
@@ -244,7 +244,7 @@ export default function Archives() {
                               </Button>
                            </div>
                         </div>
-                     )}
+                      )}
                   </div>
                )}
 

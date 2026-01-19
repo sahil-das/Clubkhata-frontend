@@ -120,15 +120,18 @@ const drawFooter = (doc) => {
 /* =========================================================
    1. HISTORY EXPORT (UPDATED DONATIONS SECTION)
    ========================================================= */
+/* =========================================================
+   1. HISTORY EXPORT (UPGRADED)
+   ========================================================= */
 export const exportHistoryCyclePDF = ({
-  cycle, summary, weekly, puja, donations, expenses, clubName, frequency = "weekly",
+  cycle, summary, weekly, puja, donations, expenses, rentals, clubName, frequency = "weekly",
 }) => {
   const doc = new jsPDF();
   const margin = 14;
   const cycleDate = `${new Date(cycle.startDate).toLocaleDateString('en-IN')} - ${new Date(cycle.endDate).toLocaleDateString('en-IN')}`;
   let y = drawHeader(doc, clubName, "Financial History Report", `Cycle: ${cycle.name} | ${cycleDate}`);
 
-  // --- SUMMARY TABLE ---
+  // --- SUMMARY ---
   autoTable(doc, {
     startY: y,
     head: [["Opening", "Collections", "Expenses", "Closing"]],
@@ -146,14 +149,29 @@ export const exportHistoryCyclePDF = ({
 
   y = doc.lastAutoTable.finalY + 20; 
 
-  const addSection = (title, head, body, color, totalValue) => {
+  // ✅ UPGRADED HELPER: Accepts custom footer and column styles
+  const addSection = (title, head, body, color, totalValue, customOptions = {}) => {
     if (y + 35 > 280) { doc.addPage(); y = 20; }
-    doc.setFontSize(12); doc.setTextColor(...COLORS.text); doc.setFont(undefined, "bold");
+    
+    doc.setFontSize(12); 
+    doc.setTextColor(...COLORS.text); 
+    doc.setFont(undefined, "bold");
     doc.text(title, margin, y + 4); 
     
-    const footRow = ["Total"];
-    for (let i = 1; i < head.length - 1; i++) footRow.push("");
-    footRow.push(formatCurrency(totalValue));
+    // Default Footer Logic (Total in last column)
+    let footRow = ["Total"];
+    if (customOptions.foot) {
+        footRow = customOptions.foot;
+    } else {
+        for (let i = 1; i < head.length - 1; i++) footRow.push("");
+        footRow.push(formatCurrency(totalValue));
+    }
+
+    // Default Styles (Last column right-aligned)
+    const defaultColStyles = { 
+        [head.length - 1]: { halign: "right", fontStyle: "bold" }, 
+        0: { halign: 'left' } 
+    };
 
     autoTable(doc, {
       startY: y + 8,
@@ -164,49 +182,80 @@ export const exportHistoryCyclePDF = ({
       theme: "striped",
       headStyles: { fillColor: color },
       footStyles: { fillColor: [241, 245, 249], textColor: COLORS.text, fontStyle: 'bold', halign: 'right' },
-      columnStyles: { [head.length - 1]: { halign: "right", fontStyle: "bold" }, 0: { halign: 'left' } },
+      // Merge defaults with custom column styles
+      columnStyles: { ...defaultColStyles, ...(customOptions.columnStyles || {}) },
       margin: { left: margin, right: margin }
     });
     y = doc.lastAutoTable.finalY + 15;
   };
 
+  // 1. WEEKLY / MONTHLY
   if (weekly?.length) {
     const totalWeekly = weekly.reduce((sum, w) => sum + (Number(w.total) || 0), 0);
     const subLabel = frequency === "monthly" ? "Monthly Contributions" : "Weekly Contributions";
     addSection(subLabel, ["Member Name", "Amount"], weekly.map(w => [w.memberName, formatCurrency(w.total)]), COLORS.primary, totalWeekly);
   }
 
+  // 2. PUJA FEES
   if (puja?.length) {
     const totalPuja = puja.reduce((sum, p) => sum + (Number(p.total) || 0), 0);
     addSection("Puja Contributions", ["Member Name", "Amount"], puja.map(p => [p.memberName, formatCurrency(p.total)]), COLORS.success, totalPuja);
   }
 
-  // ✅ UPDATED: Donations Section in History
+  // 3. DONATIONS
   if (donations?.length) {
-    // Only sum Cash/Online
-    const totalDonations = donations
-        .filter(d => d.type !== 'item')
-        .reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
-    
+    const totalDonations = donations.filter(d => d.type !== 'item').reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
     const body = donations.map(d => {
-        const val = d.type === 'item' 
-            ? `${d.itemDetails?.itemName} (${d.itemDetails?.quantity})` 
-            : formatCurrency(d.amount);
+        const val = d.type === 'item' ? `${d.itemDetails?.itemName} (${d.itemDetails?.quantity})` : formatCurrency(d.amount);
         return [d.donorName, new Date(d.date).toLocaleDateString('en-IN'), val];
     });
-
     addSection("Donations", ["Donor", "Date", "Value"], body, COLORS.accent, totalDonations);
   }
 
+  // 4. EXPENSES
   if (expenses?.length) {
     const totalExpenses = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     addSection("Expenses Breakdown", ["Title", "Date", "Amount"], expenses.map(e => [e.title, new Date(e.date).toLocaleDateString('en-IN'), formatCurrency(e.amount)]), COLORS.danger, totalExpenses);
   }
 
+  // 5. ✅ RENTALS (UPGRADED)
+  if (rentals?.length) {
+    const totalPaid = rentals.reduce((sum, r) => sum + (Number(r.paid) || 0), 0);
+    const totalBill = rentals.reduce((sum, r) => sum + (Number(r.totalBill) || 0), 0);
+    
+    const rentalBody = rentals.map(r => {
+        const itemDetails = r.items.map(i => `• ${i.name} (x${i.qty}) = ${formatCurrency(i.cost)}`).join("\n");
+        return [
+            r.vendorName,
+            itemDetails, 
+            formatCurrency(r.totalBill),
+            formatCurrency(r.paid),
+            r.status.toUpperCase()
+        ];
+    });
+
+    addSection("Vendor Rental Orders", 
+        ["Vendor", "Items Rented", "Bill", "Paid", "Status"], 
+        rentalBody, 
+        COLORS.info, 
+        0, // Dummy value, overridden below
+        {
+            // Custom Footer: Total, Empty, Bill Sum, Paid Sum, Empty
+            foot: ["Total", "", formatCurrency(totalBill), formatCurrency(totalPaid), ""],
+            
+            // Custom Styles: Right align Bill (2) and Paid (3)
+            columnStyles: {
+                2: { halign: 'right', fontStyle: 'bold' }, // Bill
+                3: { halign: 'right', fontStyle: 'bold' }, // Paid
+                4: { halign: 'center', fontStyle: 'normal' } // Status
+            }
+        }
+    );
+  }
+
   drawFooter(doc);
   doc.save(`${sanitizeName(clubName)}_Archive_${sanitizeName(cycle.name)}.pdf`);
 };
-
 /* =========================================================
    2. FINANCE EXPORT (Standard)
    ========================================================= */
@@ -580,4 +629,178 @@ export const exportBudgetPDF = ({ clubName, budgetData = [], cycleName }) => {
   
     drawFooter(doc);
     doc.save(`${sanitizeName(clubName)}_Budget_Report.pdf`);
+};
+
+/* =========================================================
+   10. RENTAL PURCHASE ORDER (PO) GENERATOR (FIXED)
+   ========================================================= */
+export const exportPurchaseOrderPDF = ({ clubName, order }) => {
+  const doc = new jsPDF();
+  const margin = 14;
+  // ✅ FIX: Define pageWidth so the footer can use it
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+
+  // 1. Header
+  let y = drawHeader(
+      doc, 
+      clubName, 
+      "Rental Purchase Order", 
+      `PO #: ${order._id.slice(-6).toUpperCase()} | Date: ${new Date().toLocaleDateString('en-IN')}`
+  );
+
+  // 2. Vendor Details Section
+  doc.setFontSize(10);
+  
+  // --- Left Column: Vendor Details ---
+  doc.setTextColor(...COLORS.primary);
+  doc.setFont(undefined, 'bold');
+  doc.text("VENDOR:", margin, y);
+  
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...COLORS.text);
+  doc.text(order.vendor?.name || "N/A", margin, y + 6);
+  
+  doc.setTextColor(...COLORS.secondary);
+  doc.text(order.vendor?.phone || "", margin, y + 11);
+  if (order.vendor?.address) {
+      const addressLines = doc.splitTextToSize(order.vendor.address, 80);
+      doc.text(addressLines, margin, y + 16);
+  }
+
+  // --- Right Column: Order Logistics ---
+  const rightColX = 120;
+  doc.setTextColor(...COLORS.primary);
+  doc.setFont(undefined, 'bold');
+  doc.text("ORDER DETAILS:", rightColX, y);
+  
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...COLORS.text);
+  
+  const dateData = [
+      [`Booking Date:`, new Date(order.bookingDate).toLocaleDateString('en-IN')],
+      [`Delivery Date:`, new Date(order.deliveryDate).toLocaleDateString('en-IN')],
+      [`Return Date:`, new Date(order.returnDate).toLocaleDateString('en-IN')],
+      [`Duration:`, `${order.items[0]?.days || 1} Days`]
+  ];
+
+  dateData.forEach((row, i) => {
+      doc.setTextColor(...COLORS.secondary);
+      doc.text(row[0], rightColX, y + 6 + (i*5));
+      doc.setTextColor(...COLORS.text);
+      doc.text(row[1], rightColX + 35, y + 6 + (i*5));
+  });
+
+  y += 35; // Spacing before table
+
+  // 3. Items Table
+  autoTable(doc, {
+    startY: y,
+    head: [["#", "Item Description", "Qty", "Days", "Rate", "Total"]],
+    body: order.items.map((item, i) => [
+      i + 1,
+      item.itemName,
+      item.quantity,
+      item.days,
+      formatCurrency(item.rate),
+      formatCurrency(item.totalCost)
+    ]),
+    foot: [
+        ["", "", "", "", "Total Bill", formatCurrency(order.totalEstimatedAmount)],
+        ["", "", "", "", "Paid So Far", formatCurrency(order.advancePaid)],
+        ["", "", "", "", "Balance Due", formatCurrency(order.totalEstimatedAmount - order.advancePaid)]
+    ],
+    theme: "grid",
+    headStyles: { fillColor: COLORS.primary, halign: 'center' },
+    footStyles: { fillColor: [248, 250, 252], textColor: COLORS.text, fontStyle: 'bold', halign: 'right' },
+    columnStyles: { 
+        0: { halign: 'center', cellWidth: 10 },
+        2: { halign: 'center' },
+        3: { halign: 'center' },
+        4: { halign: 'right' },
+        5: { halign: 'right', fontStyle: 'bold' }
+    }
+  });
+
+  y = doc.lastAutoTable.finalY + 15;
+
+  // 4. Payment History Ledger
+  if (order.payments && order.payments.length > 0) {
+      if (y + 40 > pageHeight) { doc.addPage(); y = 20; }
+
+      doc.setFontSize(11);
+      doc.setTextColor(...COLORS.primary);
+      doc.setFont(undefined, 'bold');
+      doc.text("PAYMENT TRANSACTION HISTORY", margin, y);
+      y += 6;
+
+      autoTable(doc, {
+          startY: y,
+          head: [["Date", "Mode", "Notes", "Amount"]],
+          body: order.payments.map(p => [
+              new Date(p.date).toLocaleDateString('en-IN'),
+              p.mode,
+              p.notes || "-",
+              formatCurrency(p.amount)
+          ]),
+          theme: "striped",
+          headStyles: { fillColor: COLORS.secondary },
+          columnStyles: { 
+              3: { halign: "right", fontStyle: "bold" }
+          },
+          styles: { fontSize: 9 }
+      });
+
+      y = doc.lastAutoTable.finalY + 15;
+  }
+
+  // 5. Notes & Terms
+  if (order.notes) {
+      if (y + 30 > pageHeight) { doc.addPage(); y = 20; }
+      
+      doc.setFontSize(9);
+      doc.setTextColor(...COLORS.text);
+      doc.setFont(undefined, 'bold');
+      doc.text("Instructions / Notes:", margin, y);
+      
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(...COLORS.secondary);
+      const noteLines = doc.splitTextToSize(order.notes, 180);
+      doc.text(noteLines, margin, y + 5);
+      y += 10 + (noteLines.length * 4);
+  }
+
+  // 6. Signature Area
+  if (y + 40 < pageHeight) {
+      y = Math.max(y, pageHeight - 50);
+  } else {
+      doc.addPage(); 
+      y = 40;
+  }
+
+  doc.setDrawColor(200);
+  doc.setLineWidth(0.5);
+  
+  // Vendor Sig
+  doc.line(margin, y + 20, margin + 60, y + 20);
+  doc.setFontSize(8);
+  doc.text("Vendor Signature", margin, y + 25);
+
+  // Club Auth Sig
+  const rightSigX = pageWidth - margin - 60;
+  doc.line(rightSigX, y + 20, rightSigX + 60, y + 20);
+  doc.text("Authorized Signatory", rightSigX, y + 25);
+
+  // Footer
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.secondary);
+    doc.text(`Generated by ClubKhata`, 14, pageHeight - 10);
+    // ✅ No error now because 'pageWidth' and 'pageHeight' are defined
+    doc.text(`Page ${i} of ${pageCount}`, pageWidth - 14, pageHeight - 10, { align: "right" });
+  }
+
+  doc.save(`${sanitizeName(clubName)}_PO_${order._id.slice(-6)}.pdf`);
 };
