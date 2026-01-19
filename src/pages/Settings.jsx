@@ -550,9 +550,9 @@ export default function Settings() {
       {/* CONFIRM REMOVE CATEGORY MODAL */}
       <ConfirmModal
         isOpen={isCategoryConfirmModalOpen}
+        onClose={cancelRemoveCategory}  // 👈 ADD THIS LINE
         title="Remove Category"
-        onClose={cancelRemoveCategory}
-        message={`Remove "${categoryToRemove}" from the list? \n(Existing expenses with this category will NOT be deleted, but you won't be able to select it for new ones.)`}
+        message={`Remove "${categoryToRemove}"...`}
         onConfirm={confirmRemoveCategory}
         onCancel={cancelRemoveCategory}
       />
