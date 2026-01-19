@@ -7,9 +7,11 @@ const ToastContext = createContext();
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
+  // ✅ 1. Update: Return the ID so we can use it for dismissal
   const addToast = useCallback((message, type = "info", duration = 4000) => {
     const id = Date.now().toString();
     setToasts((prev) => [...prev, { id, message, type, duration }]);
+    return id; // Return ID
   }, []);
 
   const removeToast = useCallback((id) => {
@@ -21,6 +23,12 @@ export function ToastProvider({ children }) {
     success: (msg, duration) => addToast(msg, "success", duration),
     error: (msg, duration) => addToast(msg, "error", duration),
     info: (msg, duration) => addToast(msg, "info", duration),
+    
+    // ✅ 2. FIX: Add missing 'loading' method (Duration 0 = infinite until dismissed)
+    loading: (msg) => addToast(msg, "loading", 0), 
+
+    // ✅ 3. FIX: Add missing 'dismiss' method
+    dismiss: (id) => removeToast(id)
   };
 
   return (

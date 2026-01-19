@@ -15,3 +15,5 @@ export const updateYear = (id, data) =>
 // Close the year (Archive it)
 export const closeYear = (id) => 
   api.post(`/years/${id}/close`);
+export const getFestivalYears = () => 
+  api.get("/years");

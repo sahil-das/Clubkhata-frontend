@@ -121,14 +121,14 @@ const drawFooter = (doc) => {
    1. HISTORY EXPORT (UPDATED DONATIONS SECTION)
    ========================================================= */
 export const exportHistoryCyclePDF = ({
-  cycle, summary, weekly, puja, donations, expenses, clubName, frequency = "weekly",
+  cycle, summary, weekly, puja, donations, expenses, rentals, clubName, frequency = "weekly",
 }) => {
   const doc = new jsPDF();
   const margin = 14;
   const cycleDate = `${new Date(cycle.startDate).toLocaleDateString('en-IN')} - ${new Date(cycle.endDate).toLocaleDateString('en-IN')}`;
   let y = drawHeader(doc, clubName, "Financial History Report", `Cycle: ${cycle.name} | ${cycleDate}`);
 
-  // --- SUMMARY TABLE ---
+  // --- SUMMARY ---
   autoTable(doc, {
     startY: y,
     head: [["Opening", "Collections", "Expenses", "Closing"]],
@@ -181,20 +181,12 @@ export const exportHistoryCyclePDF = ({
     addSection("Puja Contributions", ["Member Name", "Amount"], puja.map(p => [p.memberName, formatCurrency(p.total)]), COLORS.success, totalPuja);
   }
 
-  // ✅ UPDATED: Donations Section in History
   if (donations?.length) {
-    // Only sum Cash/Online
-    const totalDonations = donations
-        .filter(d => d.type !== 'item')
-        .reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
-    
+    const totalDonations = donations.filter(d => d.type !== 'item').reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
     const body = donations.map(d => {
-        const val = d.type === 'item' 
-            ? `${d.itemDetails?.itemName} (${d.itemDetails?.quantity})` 
-            : formatCurrency(d.amount);
+        const val = d.type === 'item' ? `${d.itemDetails?.itemName} (${d.itemDetails?.quantity})` : formatCurrency(d.amount);
         return [d.donorName, new Date(d.date).toLocaleDateString('en-IN'), val];
     });
-
     addSection("Donations", ["Donor", "Date", "Value"], body, COLORS.accent, totalDonations);
   }
 
@@ -203,10 +195,33 @@ export const exportHistoryCyclePDF = ({
     addSection("Expenses Breakdown", ["Title", "Date", "Amount"], expenses.map(e => [e.title, new Date(e.date).toLocaleDateString('en-IN'), formatCurrency(e.amount)]), COLORS.danger, totalExpenses);
   }
 
+  // ✅ RENTALS SECTION (Placed last)
+  if (rentals?.length) {
+    const totalPaid = rentals.reduce((sum, r) => sum + (Number(r.paid) || 0), 0);
+    
+    // Format items into a single multi-line string
+    const rentalBody = rentals.map(r => {
+        const itemDetails = r.items.map(i => `• ${i.name} (x${i.qty}) = ${formatCurrency(i.cost)}`).join("\n");
+        return [
+            r.vendorName,
+            itemDetails, // Multi-line string
+            formatCurrency(r.totalBill),
+            formatCurrency(r.paid),
+            r.status.toUpperCase()
+        ];
+    });
+
+    addSection("Vendor Rental Orders", 
+        ["Vendor", "Items Rented", "Bill", "Paid", "Status"], 
+        rentalBody, 
+        COLORS.info, 
+        totalPaid
+    );
+  }
+
   drawFooter(doc);
   doc.save(`${sanitizeName(clubName)}_Archive_${sanitizeName(cycle.name)}.pdf`);
 };
-
 /* =========================================================
    2. FINANCE EXPORT (Standard)
    ========================================================= */

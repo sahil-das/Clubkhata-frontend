@@ -100,13 +100,27 @@ export default function Archives() {
       donations: (records.donations || []).map(d => ({
          donorName: d.donorName || "Anonymous",
          date: d.date || d.createdAt,
-         amount: parse(d.amount)
+         amount: parse(d.amount),
+         type: d.type,
+         itemDetails: d.itemDetails
       })),
 
       expenses: (records.expenses || []).map(e => ({
          title: e.title,
          date: e.date || e.createdAt,
          amount: parse(e.amount)
+      })),
+
+      rentals: (records.rentals || []).map(r => ({
+         vendorName: r.vendor?.name || "Unknown Vendor",
+         status: r.status,
+         totalBill: parse(r.totalEstimatedAmount),
+         paid: parse(r.advancePaid),
+         items: r.items.map(i => ({
+             name: i.itemName,
+             qty: i.quantity,
+             cost: i.totalCost
+         }))
       }))
     });
   };
@@ -181,7 +195,6 @@ export default function Archives() {
                               <DetailBox label="Total Income" amount={yearDetails.summary.income.total} color="text-emerald-600 dark:text-emerald-400" icon={<TrendingUp size={14}/>} />
                               <DetailBox label="Total Expenses" amount={yearDetails.summary.expense} color="text-rose-600 dark:text-rose-400" icon={<TrendingDown size={14}/>} />
                               
-                              {/* ⚠️ INTELLIGENT BALANCE BOX */}
                               <DetailBox 
                                 label={yearDetails.summary.hasDiscrepancy ? "Stored Balance" : "Closing Balance"}
                                 amount={yearDetails.summary.netBalance} 
@@ -191,21 +204,6 @@ export default function Archives() {
                                 borderColor={yearDetails.summary.hasDiscrepancy ? "border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20" : null}
                               />
                            </div>
-
-                           {/* ERROR ALERT */}
-                           {yearDetails.summary.hasDiscrepancy && (
-                             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-lg p-3 flex items-start gap-3 text-sm text-amber-800 dark:text-amber-300">
-                                <AlertTriangle className="mt-0.5 shrink-0" size={16} />
-                                <div>
-                                  <p className="font-bold">Calculation Mismatch Detected</p>
-                                  <p className="opacity-90 mt-1">
-                                    The records sum to <strong>₹{yearDetails.summary.calculatedBalance}</strong>, 
-                                    but the database stored <strong>₹{yearDetails.summary.netBalance}</strong>. 
-                                    Please verify your manual entries.
-                                  </p>
-                                </div>
-                             </div>
-                           )}
 
                            {/* BREAKDOWN */}
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -228,6 +226,7 @@ export default function Archives() {
                                         <Row label="Expense Bills" value={yearDetails.records.expenses.length} isCount />
                                         <Row label="Fee Records" value={yearDetails.records.fees.length} isCount />
                                         <Row label="Donations" value={yearDetails.records.donations.length} isCount />
+                                        <Row label="Rental Orders" value={yearDetails.records.rentals?.length || 0} isCount />
                                     </div>
                                 </Card>
                            </div>

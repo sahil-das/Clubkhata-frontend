@@ -1,4 +1,3 @@
-// src/components/ui/Modal.jsx
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
@@ -25,9 +24,11 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = "ma
       />
 
       {/* Modal Panel */}
-      <div className={`relative w-full ${maxWidth} bg-white dark:bg-slate-900 rounded-2xl shadow-2xl transform transition-all animate-in fade-in zoom-in-95 duration-200 border border-transparent dark:border-slate-800`}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+      {/* ✅ ADDED: max-h-[85vh] and flex layout to handle scrolling properly */}
+      <div className={`relative w-full ${maxWidth} max-h-[85vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl transform transition-all animate-in fade-in zoom-in-95 duration-200 border border-transparent dark:border-slate-800`}>
+        
+        {/* Header - Fixed at top */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-none">
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{title}</h3>
           <button 
             onClick={onClose}
@@ -37,8 +38,9 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = "ma
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 text-slate-700 dark:text-slate-300">
+        {/* Content - Scrollable Area */}
+        {/* ✅ ADDED: overflow-y-auto ensures only this part scrolls */}
+        <div className="p-6 text-slate-700 dark:text-slate-300 overflow-y-auto">
           {children}
         </div>
       </div>

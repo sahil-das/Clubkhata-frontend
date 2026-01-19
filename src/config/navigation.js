@@ -1,7 +1,7 @@
 import { 
   LayoutDashboard, Users, Wallet, Heart, Sparkles, PieChart,
   History, Settings, FileText, Archive, CalendarRange,
-  Vote, PiggyBank, Package
+  Vote, PiggyBank, Package,Briefcase
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -76,7 +76,12 @@ const NAV_ITEMS = [
     icon: Package,
     roles: ["admin", "member"]
   },
-
+  { 
+    label: "Vendor Hiring", 
+    path: "/rentals", 
+    icon: Briefcase, // Make sure to import this
+    roles: ["admin", "treasurer"] 
+  },
   // 7. Admin Tools & History
   { 
     label: "Reports", 
