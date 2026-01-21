@@ -25,7 +25,7 @@ export default function CollectionsOverview() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [openDates, setOpenDates] = useState({});
-  const [frequency, setFrequency] = useState(null); // 👈 Added state for frequency
+  const [frequency, setFrequency] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -138,8 +138,8 @@ export default function CollectionsOverview() {
           color="amber"
           icon={TrendingUp}
         />
-        <SummaryCard
-          label="Grand Total"
+        <SummaryCard 
+          label="Grand Total" 
           value={totalCollection}
           loading={financeLoading}
           highlight
@@ -181,6 +181,9 @@ export default function CollectionsOverview() {
                 {Object.entries(groupedData).map(([date, items], index) => {
                     const isOpen = openDates[date];
                     
+                    // 1. Calculate Daily Total
+                    const dailyTotal = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+                    
                     return (
                         <div key={date} className="relative pl-6 md:pl-8 animate-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
                             
@@ -197,16 +200,25 @@ export default function CollectionsOverview() {
                                 <div className={clsx("w-1.5 h-1.5 rounded-full", isOpen ? "bg-primary-500 dark:bg-primary-400" : "hidden")} />
                             </button>
                             
-                            {/* Date Header */}
+                            {/* Date Header with Totals */}
                             <button 
                                 onClick={() => toggleDate(date)}
                                 className="w-full flex items-center justify-between group mb-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 rounded-lg -ml-2 transition-colors"
                             >
-                                <div className="flex items-baseline gap-3">
-                                    <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg">{date.split(" ")[0]} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">{date.split(" ").slice(1).join(" ")}</span></h4>
-                                    <span className="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-full">
-                                        {items.length} txn
-                                    </span>
+                                <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3">
+                                    <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg">
+                                        {date.split(" ")[0]} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">{date.split(" ").slice(1).join(" ")}</span>
+                                    </h4>
+                                    
+                                    {/* 2. New Labels: Total Amount + Count */}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                                            ₹{dailyTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                        </span>
+                                        <span className="text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                                            {items.length} Donations
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="text-slate-400 dark:text-slate-500 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors">
                                     {isOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
@@ -245,7 +257,7 @@ export default function CollectionsOverview() {
             </div>
         </div>
 
-        {/* Info Sidebar (Visible on all screens now) */}
+        {/* Info Sidebar */}
         <div className="space-y-6">
             <Card className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 text-white border-none shadow-xl">
                 <h3 className="font-bold text-lg mb-2">Fund Distribution</h3>
@@ -292,7 +304,7 @@ function SummaryCard({ label, value, loading, highlight, color, icon: Icon }) {
             </p>
             {Icon && <Icon size={18} className={highlight ? "opacity-100" : "opacity-50"} />}
         </div>
-  
+   
         {loading ? (
            <div className="h-8 w-24 bg-current opacity-20 rounded animate-pulse" />
         ) : (
