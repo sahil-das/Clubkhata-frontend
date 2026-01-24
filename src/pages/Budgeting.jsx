@@ -4,11 +4,13 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { 
   PieChart, Plus, AlertTriangle, CheckCircle, Download, Edit2, Trash2, 
-  TrendingUp, AlertCircle, ArrowRight, Loader2 // 👈 Imported Loader2
+  TrendingUp, AlertCircle, ArrowRight, Loader2, Eye 
 } from "lucide-react";
 import { exportBudgetPDF } from "../utils/pdfExport";
 import SetBudgetModal from "../components/SetBudgetModal";
 import ConfirmModal from "../components/ui/ConfirmModal"; 
+// ✅ 1. Import the new Modal
+import CategoryBreakdownModal from "../components/CategoryBreakdownModal";
 
 export default function Budgeting() {
   const { activeClub } = useAuth();
@@ -20,6 +22,9 @@ export default function Budgeting() {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null); 
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, id: null }); 
+  
+  // ✅ 2. State for viewing details
+  const [viewingCategory, setViewingCategory] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -58,11 +63,9 @@ export default function Budgeting() {
   const totalSpent = data.reduce((sum, item) => sum + item.spent, 0);
   const percentage = totalAllocated > 0 ? Math.round((totalSpent / totalAllocated) * 100) : 0;
 
-  // 🔹 SEPARATE LISTS
   const plannedBudgets = data.filter(item => !item.isUnplanned);
   const unplannedExpenses = data.filter(item => item.isUnplanned);
 
-  // ⏳ LOADING STATE
   if (loading) {
       return (
         <div className="min-h-[60vh] flex items-center justify-center text-indigo-600 dark:text-indigo-400">
@@ -139,7 +142,9 @@ export default function Budgeting() {
                         item={item} 
                         isAdmin={activeClub?.role === 'admin'} 
                         onEdit={handleEdit} 
-                        onDelete={setConfirmDelete} 
+                        onDelete={setConfirmDelete}
+                        // ✅ Pass view handler
+                        onView={() => setViewingCategory(item.category)}
                     />
                 ))}
                 
@@ -151,7 +156,7 @@ export default function Budgeting() {
             </div>
         </div>
 
-        {/* 2. UNPLANNED EXPENSES SECTION (Only shows if exists) */}
+        {/* 2. UNPLANNED EXPENSES SECTION */}
         {unplannedExpenses.length > 0 && (
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-4 text-amber-600 dark:text-amber-500">
@@ -162,7 +167,12 @@ export default function Budgeting() {
                 <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-2xl overflow-hidden">
                     <div className="divide-y divide-amber-100 dark:divide-amber-900/30">
                         {unplannedExpenses.map((item, idx) => (
-                            <div key={idx} className="p-4 flex items-center justify-between group hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors">
+                            // ✅ Make this row clickable too
+                            <div 
+                                key={idx} 
+                                onClick={() => setViewingCategory(item.category)}
+                                className="p-4 flex items-center justify-between group hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors cursor-pointer"
+                            >
                                 <div className="flex items-center gap-4">
                                     <div className="p-2 bg-white dark:bg-slate-900 rounded-lg text-amber-600 dark:text-amber-500 shadow-sm">
                                         <AlertCircle size={20} />
@@ -175,13 +185,15 @@ export default function Budgeting() {
                                     </div>
                                 </div>
 
-                                {activeClub?.role === 'admin' && (
+                                {activeClub?.role === 'admin' ? (
                                     <button 
-                                        onClick={() => handleEdit(item)}
-                                        className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 rounded-lg text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-600 hover:text-white dark:hover:bg-amber-600 dark:hover:text-white transition-all shadow-sm"
+                                        onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 rounded-lg text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-600 hover:text-white transition-all shadow-sm"
                                     >
                                         Set Limit <ArrowRight size={12} />
                                     </button>
+                                ) : (
+                                    <ArrowRight size={16} className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
                                 )}
                             </div>
                         ))}
@@ -200,6 +212,14 @@ export default function Budgeting() {
             />
         )}
 
+        {/* ✅ Render the Category Modal */}
+        {viewingCategory && (
+            <CategoryBreakdownModal 
+                category={viewingCategory} 
+                onClose={() => setViewingCategory(null)} 
+            />
+        )}
+
         <ConfirmModal 
             isOpen={confirmDelete.isOpen}
             onClose={() => setConfirmDelete({ isOpen: false, id: null })}
@@ -212,22 +232,25 @@ export default function Budgeting() {
   );
 }
 
-// 🔹 SUB-COMPONENT: Standard Budget Card
-function BudgetCard({ item, isAdmin, onEdit, onDelete }) {
+// 🔹 UPDATED SUB-COMPONENT: Standard Budget Card
+function BudgetCard({ item, isAdmin, onEdit, onDelete, onView }) {
     return (
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm group relative hover:shadow-md transition-all">
+        <div 
+            onClick={onView} 
+            className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm group relative hover:shadow-md transition-all cursor-pointer"
+        >
             
             {/* ACTIONS */}
             {isAdmin && (
                 <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
-                        onClick={() => onEdit(item)}
+                        onClick={(e) => { e.stopPropagation(); onEdit(item); }}
                         className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
                     >
                         <Edit2 size={16} />
                     </button>
                     <button 
-                        onClick={() => onDelete({ isOpen: true, id: item._id })}
+                        onClick={(e) => { e.stopPropagation(); onDelete({ isOpen: true, id: item._id }); }}
                         className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                     >
                         <Trash2 size={16} />
@@ -237,7 +260,10 @@ function BudgetCard({ item, isAdmin, onEdit, onDelete }) {
 
             <div className="flex justify-between items-start mb-3 pr-16">
                 <div>
-                    <h3 className="font-bold text-slate-800 dark:text-slate-200">{item.category}</h3>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        {item.category}
+                        <Eye size={12} className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+                    </h3>
                     <p className="text-xs text-slate-400">Allocated: ₹{item.allocated.toLocaleString()}</p>
                 </div>
                 <StatusBadge status={item.status} />
