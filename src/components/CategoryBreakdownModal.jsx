@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchExpenses } from "../api/expenses";
 import { X, Calendar, User, FileText, Loader2 } from "lucide-react";
-import Modal from "./ui/Modal"; // Assuming you have a base Modal or using standard fixed div
 
 export default function CategoryBreakdownModal({ category, onClose }) {
   const [expenses, setExpenses] = useState([]);
@@ -11,11 +10,12 @@ export default function CategoryBreakdownModal({ category, onClose }) {
     const loadData = async () => {
       try {
         setLoading(true);
-        // Fetch only expenses for this specific category
         const res = await fetchExpenses({ category });
-        setExpenses(res.data || []);
+        // Ensure we extract the array from the response object
+        setExpenses(res.data.data || []); 
       } catch (err) {
         console.error(err);
+        setExpenses([]);
       } finally {
         setLoading(false);
       }
@@ -24,7 +24,11 @@ export default function CategoryBreakdownModal({ category, onClose }) {
     if (category) loadData();
   }, [category]);
 
-  const totalSpent = expenses.reduce((sum, item) => sum + item.amount, 0);
+  // Safe check + Convert String to Number for calculation
+  const safeExpenses = Array.isArray(expenses) ? expenses : [];
+  
+  // ✅ FIX: Use Number() or parseFloat() here
+  const totalSpent = safeExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
@@ -51,14 +55,14 @@ export default function CategoryBreakdownModal({ category, onClose }) {
              <div className="h-40 flex items-center justify-center text-indigo-500">
                <Loader2 className="animate-spin w-8 h-8" />
              </div>
-          ) : expenses.length === 0 ? (
+          ) : safeExpenses.length === 0 ? (
              <div className="h-40 flex flex-col items-center justify-center text-slate-400">
                <FileText size={32} className="mb-2 opacity-50"/>
                <p>No expenses recorded yet.</p>
              </div>
           ) : (
             <div className="space-y-2 p-2">
-              {expenses.map((expense) => (
+              {safeExpenses.map((expense) => (
                 <div key={expense._id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 flex justify-between items-center group hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm transition-all">
                   <div className="flex-1">
                     <h4 className="font-bold text-slate-700 dark:text-slate-200">{expense.title}</h4>
@@ -74,8 +78,9 @@ export default function CategoryBreakdownModal({ category, onClose }) {
                     </div>
                   </div>
                   <div className="text-right">
+                    {/* ✅ FIX: Ensure Number() is used for formatting too */}
                     <p className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                      ₹{expense.amount.toLocaleString()}
+                      ₹{Number(expense.amount).toLocaleString()}
                     </p>
                     <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
                         expense.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
