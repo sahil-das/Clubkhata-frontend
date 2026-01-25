@@ -28,6 +28,7 @@ const Reports = React.lazy(() => import("./pages/Reports"));
 const RegisterClub = React.lazy(() => import("./pages/RegisterClub"));
 const AuditLogs = React.lazy(() => import("./pages/AuditLogs"));
 const Archives = React.lazy(() => import("./pages/Archives"));
+const ArchiveReport = React.lazy(() => import("./pages/ArchiveReport"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 // ✅ NEW PHASE 2 PAGES
@@ -110,6 +111,7 @@ export default function App() {
                   <Route path="donations" element={<Donations />} />
                   <Route path="expenses" element={<Expenses />} />
                   <Route path="archives" element={<Archives />} />
+                  <Route path="archives/:yearId" element={<ArchiveReport />} />
                   <Route path="members" element={<Members />} />
 
                   {/* ✅ NEW PHASE 2 ROUTES */}
