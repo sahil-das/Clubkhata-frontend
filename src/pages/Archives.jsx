@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // 👈 Added hook
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { 
   Archive, Calendar, ChevronRight, Download, Lock, Loader2, 
-  TrendingUp, TrendingDown, AlertTriangle 
+  TrendingUp, TrendingDown, AlertTriangle, PieChart // 👈 Added Icon
 } from "lucide-react";
 import { exportHistoryCyclePDF } from "../utils/pdfExport"; 
 import { clsx } from "clsx";
@@ -14,6 +15,8 @@ import { Card } from "../components/ui/Card";
 
 export default function Archives() {
   const { activeClub } = useAuth();
+  const navigate = useNavigate(); // 👈 Initialize Hook
+  
   const [years, setYears] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(null);
@@ -111,7 +114,6 @@ export default function Archives() {
          amount: parse(e.amount)
       })),
 
-      // ✅ RENTALS MAPPING (Updated)
       rentals: (records.rentals || []).map(r => ({
          vendorName: r.vendor?.name || "Unknown Vendor",
          status: r.status,
@@ -120,7 +122,7 @@ export default function Archives() {
          items: (r.items || []).map(i => ({
              name: i.itemName,
              qty: i.quantity,
-             cost: parse(i.totalCost) // Ensure this is a number for formatting
+             cost: parse(i.totalCost) 
          }))
       }))
     });
@@ -232,8 +234,19 @@ export default function Archives() {
                                 </Card>
                            </div>
 
-                           {/* EXPORT */}
-                           <div className="flex justify-end pt-2">
+                           {/* EXPORT & ACTION BUTTONS */}
+                           <div className="flex justify-end pt-2 gap-3">
+                              
+                              {/* ✅ NEW: View Visual Report Button */}
+                              <Button 
+                                variant="outline"
+                                onClick={() => navigate(`/archives/${selectedYear._id}`)}
+                                leftIcon={<PieChart size={16} />}
+                                className="dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                              >
+                                View Visual Report
+                              </Button>
+
                               <Button 
                                 variant="secondary"
                                 onClick={handleExport}
