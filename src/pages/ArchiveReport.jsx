@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { 
   TrendingUp, TrendingDown, Wallet, IndianRupee, PieChart as PieIcon, 
-  ArrowLeft, Loader2, Calendar, FileText, Gift, Truck 
+  ArrowLeft, Loader2, Calendar, FileText, Gift, Truck, Users, Sparkles 
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -19,7 +19,7 @@ export default function ArchiveReport() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   
-  // Tab State for Detailed Records
+  // Default to expenses tab
   const [activeTab, setActiveTab] = useState("expenses");
 
   const COLORS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#3b82f6", "#14b8a6"];
@@ -40,7 +40,9 @@ export default function ArchiveReport() {
     }
   };
 
-  // 1. Prepare Daily Trend Data
+  // --- DATA PREPARATION ---
+
+  // 1. Daily Trend
   const dailyCollection = useMemo(() => {
     if (!data) return [];
     const dateMap = {};
@@ -54,10 +56,10 @@ export default function ArchiveReport() {
     return Object.keys(dateMap).map(date => ({
       date,
       amount: dateMap[date]
-    })).slice(-14); // Last 14 active days
+    })).slice(-14); 
   }, [data]);
 
-  // 2. Prepare Expense Breakdown
+  // 2. Expense Breakdown
   const expenseBreakdown = useMemo(() => {
     if (!data) return [];
     const breakdown = (data.records.expenses || []).reduce((acc, curr) => {
@@ -70,11 +72,29 @@ export default function ArchiveReport() {
       .sort((a, b) => b.value - a.value);
   }, [data]);
 
+  // 3. Prepare Subscriptions (Handle Missing Individual Records)
+  const subscriptionData = useMemo(() => {
+      if (!data) return [];
+      const raw = data.records.subscriptions || data.records.weekly || [];
+      const mapped = raw.map(s => ({
+          name: s.memberName || s.user?.name || "Member",
+          amount: Number(s.totalPaid || s.totalAmount || s.total || s.amount) || 0
+      })).filter(s => s.amount > 0);
+
+      // If no individual records but summary exists, show aggregate
+      const summaryTotal = Number(data.summary.income.subscriptions || 0);
+      if (mapped.length === 0 && summaryTotal > 0) {
+          return [{ name: "Aggregated Collection (Details Unavailable)", amount: summaryTotal, isAggregate: true }];
+      }
+      return mapped;
+  }, [data]);
+
   if (loading) return <div className="h-screen flex justify-center items-center text-indigo-600"><Loader2 className="animate-spin w-10 h-10" /></div>;
   if (!data) return <div className="text-center p-10">Archive not found</div>;
 
   const { summary, info, records } = data;
   const hasRentals = records.rentals && records.rentals.length > 0;
+  const hasSubscriptions = info.subscriptionFrequency !== 'none';
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4">
@@ -104,7 +124,7 @@ export default function ArchiveReport() {
         <StatCard label="Closing Balance" amount={summary.netBalance} icon={IndianRupee} color="indigo" highlight />
       </div>
 
-      {/* CHARTS ROW 1 */}
+      {/* CHARTS ROW */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Income vs Expense */}
         <Card className="min-h-[400px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
@@ -161,41 +181,77 @@ export default function ArchiveReport() {
       <div className="space-y-4">
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Detailed Records</h3>
         
-        {/* TABS */}
-        <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 mb-4">
-            <TabButton active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} icon={FileText}>Expenses</TabButton>
-            <TabButton active={activeTab === 'donations'} onClick={() => setActiveTab('donations')} icon={Gift}>Donations</TabButton>
-            {hasRentals && <TabButton active={activeTab === 'rentals'} onClick={() => setActiveTab('rentals')} icon={Truck}>Rentals</TabButton>}
+        {/* TABS SCROLLABLE */}
+        <div className="overflow-x-auto pb-2">
+            <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 min-w-max">
+                <TabButton active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} icon={FileText}>Expenses</TabButton>
+                {hasSubscriptions && (
+                   <TabButton active={activeTab === 'collections'} onClick={() => setActiveTab('collections')} icon={Users}>Collections</TabButton>
+                )}
+                <TabButton active={activeTab === 'fees'} onClick={() => setActiveTab('fees')} icon={Sparkles}>Puja Fees</TabButton>
+                <TabButton active={activeTab === 'donations'} onClick={() => setActiveTab('donations')} icon={Gift}>Donations</TabButton>
+                {hasRentals && <TabButton active={activeTab === 'rentals'} onClick={() => setActiveTab('rentals')} icon={Truck}>Rentals</TabButton>}
+            </div>
         </div>
 
         {/* TAB CONTENT */}
         <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 min-h-[300px]">
+            
+            {/* 1. EXPENSES */}
             {activeTab === 'expenses' && (
                 <DataTable 
                     data={records.expenses} 
                     columns={[
                         { header: "Date", accessor: (item) => new Date(item.date).toLocaleDateString() },
                         { header: "Title", accessor: "title" },
-                        { header: "Category", accessor: "category", className: "hidden md:table-cell" },
-                        { header: "Amount", accessor: (item) => `₹${item.amount.toLocaleString()}`, className: "text-right font-mono font-bold" }
+                        { header: "Category", accessor: "category", className: "hidden sm:table-cell" },
+                        { header: "Amount", accessor: (item) => `₹${item.amount.toLocaleString()}`, className: "text-right font-mono font-bold text-slate-700 dark:text-slate-200" }
                     ]}
                     emptyMessage="No expenses recorded."
                 />
             )}
+
+            {/* 2. SUBSCRIPTIONS (COLLECTIONS) */}
+            {activeTab === 'collections' && (
+                <DataTable 
+                    data={subscriptionData}
+                    columns={[
+                        { header: "Member Name", accessor: "name", className: "font-medium" },
+                        { header: "Total Paid", accessor: (item) => `₹${item.amount.toLocaleString()}`, className: "text-right font-mono font-bold text-emerald-600" }
+                    ]}
+                    emptyMessage="No subscription records found."
+                />
+            )}
+
+            {/* 3. PUJA FEES */}
+            {activeTab === 'fees' && (
+                <DataTable 
+                    data={records.fees} 
+                    columns={[
+                        { header: "Member Name", accessor: (item) => item.user?.name || "Unknown Member", className: "font-medium" },
+                        { header: "Amount", accessor: (item) => `₹${item.amount.toLocaleString()}`, className: "text-right font-mono font-bold text-emerald-600" }
+                    ]}
+                    emptyMessage="No puja fees recorded."
+                />
+            )}
             
+            {/* 4. DONATIONS (With Item Details) */}
             {activeTab === 'donations' && (
                 <DataTable 
                     data={records.donations} 
                     columns={[
                         { header: "Date", accessor: (item) => new Date(item.date).toLocaleDateString() },
                         { header: "Donor", accessor: "donorName" },
-                        { header: "Type", accessor: "type", className: "capitalize text-slate-500" },
-                        { header: "Amount", accessor: (item) => `₹${item.amount.toLocaleString()}`, className: "text-right font-mono font-bold text-emerald-600" }
+                        { header: "Type", accessor: "type", className: "capitalize text-slate-500 text-xs hidden sm:table-cell" },
+                        // Show item details or '-'
+                        { header: "Details", accessor: (item) => item.type === 'item' ? (item.itemDetails || 'Item Donation') : '-', className: "text-xs text-slate-500 italic" },
+                        { header: "Value", accessor: (item) => `₹${item.amount.toLocaleString()}`, className: "text-right font-mono font-bold text-emerald-600" }
                     ]}
                     emptyMessage="No donations recorded."
                 />
             )}
 
+            {/* 5. RENTALS (With Item Summary) */}
             {activeTab === 'rentals' && (
                 <DataTable 
                     data={records.rentals || []} 
@@ -206,7 +262,14 @@ export default function ArchiveReport() {
                                 item.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
                             }`}>{item.status}</span>
                         )},
-                        { header: "Items", accessor: (item) => item.items.length + " items" },
+                        // Format Items List
+                        { header: "Items", accessor: (item) => (
+                            <span className="text-xs text-slate-500" title={item.items?.map(i => `${i.itemName} (${i.quantity})`).join(", ")}>
+                                {item.items?.length > 0 
+                                    ? item.items.slice(0, 2).map(i => `${i.itemName} (${i.quantity})`).join(", ") + (item.items.length > 2 ? "..." : "")
+                                    : "No items"}
+                            </span>
+                        ), className: "hidden sm:table-cell"},
                         { header: "Total", accessor: (item) => `₹${item.totalEstimatedAmount?.toLocaleString()}`, className: "text-right font-mono font-bold" }
                     ]}
                     emptyMessage="No rentals recorded."
@@ -214,7 +277,6 @@ export default function ArchiveReport() {
             )}
         </Card>
       </div>
-
     </div>
   );
 }
@@ -248,7 +310,7 @@ function TabButton({ children, active, onClick, icon: Icon }) {
         <button 
             onClick={onClick}
             className={clsx(
-                "flex items-center gap-2 px-4 py-2 text-sm font-bold border-b-2 transition-colors",
+                "flex items-center gap-2 px-4 py-2 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
                 active 
                     ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400" 
                     : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
@@ -275,7 +337,7 @@ function DataTable({ data, columns, emptyMessage }) {
                 <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase text-xs font-bold">
                     <tr>
                         {columns.map((col, idx) => (
-                            <th key={idx} className={clsx("px-4 py-3", col.className || "")}>{col.header}</th>
+                            <th key={idx} className={clsx("px-4 py-3 whitespace-nowrap", col.className || "")}>{col.header}</th>
                         ))}
                     </tr>
                 </thead>
