@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+// 1. ✅ Import useTheme
+import { useTheme } from "../context/ThemeContext"; 
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, AreaChart, Area 
@@ -23,6 +25,10 @@ const parseAmount = (val) => {
 
 export default function Reports() {
   const { activeClub } = useAuth();
+  
+  // 2. ✅ Get Theme State
+  const { isDark } = useTheme(); 
+
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [cycle, setCycle] = useState(null);
@@ -33,6 +39,19 @@ export default function Reports() {
   const [dailyCollection, setDailyCollection] = useState([]);
 
   const COLORS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#3b82f6", "#14b8a6"];
+
+  // 3. ✅ Define Dynamic Chart Styles
+  const chartStyles = {
+    gridStroke: isDark ? "#334155" : "#e2e8f0", // Darker grid in dark mode
+    text: isDark ? "#94a3b8" : "#64748b",
+    tooltip: {
+        backgroundColor: isDark ? "#1e293b" : "#ffffff",
+        color: isDark ? "#f8fafc" : "#0f172a",
+        border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
+        borderRadius: "12px",
+        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
+    }
+  };
 
   useEffect(() => {
     fetchReportData();
@@ -117,7 +136,6 @@ export default function Reports() {
     }
   };
 
-  // Prepare expense breakdown data
   const expenseBreakdown = useMemo(() => {
     const breakdown = expenses.reduce((acc, curr) => {
       const amt = parseAmount(curr.amount);
@@ -129,7 +147,7 @@ export default function Reports() {
 
     return Object.entries(breakdown)
       .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value); // Sort by highest expense
+      .sort((a, b) => b.value - a.value);
   }, [expenses]);
 
   const handleExport = () => {
@@ -190,30 +208,10 @@ export default function Reports() {
 
       {/* 2. SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          label="Opening Balance" 
-          amount={summary.opening} 
-          icon={Wallet} 
-          color="blue" 
-        />
-        <StatCard 
-          label="Total Collected" 
-          amount={summary.collected} 
-          icon={TrendingUp} 
-          color="emerald" 
-        />
-        <StatCard 
-          label="Total Expenses" 
-          amount={summary.expenses} 
-          icon={TrendingDown} 
-          color="rose" 
-        />
-        <StatCard 
-          label="Net Balance" 
-          amount={summary.closing} 
-          icon={IndianRupee} 
-          color="indigo" 
-        />
+        <StatCard label="Opening Balance" amount={summary.opening} icon={Wallet} color="blue" />
+        <StatCard label="Total Collected" amount={summary.collected} icon={TrendingUp} color="emerald" />
+        <StatCard label="Total Expenses" amount={summary.expenses} icon={TrendingDown} color="rose" />
+        <StatCard label="Net Balance" amount={summary.closing} icon={IndianRupee} color="indigo" />
       </div>
 
       {/* 3. CHARTS ROW 1 */}
@@ -233,12 +231,15 @@ export default function Reports() {
                 ]}
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `₹${Number(val)/1000}k`} tick={{fill: '#94a3b8', fontSize: 12}} />
+                {/* 4. ✅ Use Dynamic Styles for Grid, Axis, and Tooltip */}
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartStyles.gridStroke} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: chartStyles.text, fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `₹${Number(val)/1000}k`} tick={{fill: chartStyles.text, fontSize: 12}} />
                 <Tooltip 
                   cursor={{ fill: 'transparent' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff' }}
+                  contentStyle={chartStyles.tooltip}
+                  itemStyle={{ color: chartStyles.tooltip.color }} // Ensures list text is visible
+                  labelStyle={{ color: chartStyles.tooltip.color, fontWeight: 'bold' }} // Ensures title is visible
                 />
                 <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={50}>
                   <Cell fill="#10b981" />
@@ -272,12 +273,15 @@ export default function Reports() {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(val) => `₹${Number(val).toFixed(2)}`} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff' }} />
+                    <Tooltip 
+                        formatter={(val) => `₹${Number(val).toFixed(2)}`} 
+                        contentStyle={chartStyles.tooltip}
+                        itemStyle={{ color: chartStyles.tooltip.color }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
 
-              {/* 🆕 EXPENSE LEGEND LIST */}
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="grid grid-cols-2 gap-3">
                   {expenseBreakdown.map((item, index) => (
@@ -315,10 +319,14 @@ export default function Reports() {
                   <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-              <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff' }} />
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: chartStyles.text, fontSize: 12}} />
+              <YAxis axisLine={false} tickLine={false} tick={{fill: chartStyles.text, fontSize: 12}} />
+              <Tooltip 
+                contentStyle={chartStyles.tooltip}
+                itemStyle={{ color: chartStyles.tooltip.color }}
+                labelStyle={{ color: chartStyles.tooltip.color, fontWeight: 'bold' }}
+              />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartStyles.gridStroke} />
               <Area 
                 type="monotone" 
                 dataKey="amount" 
