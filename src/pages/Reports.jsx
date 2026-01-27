@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext"; 
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, AreaChart, Area 
@@ -23,16 +24,35 @@ const parseAmount = (val) => {
 
 export default function Reports() {
   const { activeClub } = useAuth();
+  const { isDark } = useTheme(); 
+
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [cycle, setCycle] = useState(null);
   
   const [summary, setSummary] = useState({ opening: 0, collected: 0, expenses: 0, closing: 0 });
   const [expenses, setExpenses] = useState([]);
-  const [contributions, setContributions] = useState([]); 
+  
+  // ✅ NEW: State for detailed export data
+  const [rawDonations, setRawDonations] = useState([]);
+  const [rawPuja, setRawPuja] = useState([]);
+  const [rawSubs, setRawSubs] = useState([]);
+
   const [dailyCollection, setDailyCollection] = useState([]);
 
   const COLORS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#3b82f6", "#14b8a6"];
+
+  const chartStyles = {
+    gridStroke: isDark ? "#334155" : "#e2e8f0",
+    text: isDark ? "#94a3b8" : "#64748b",
+    tooltip: {
+        backgroundColor: isDark ? "#1e293b" : "#ffffff",
+        color: isDark ? "#f8fafc" : "#0f172a",
+        border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
+        borderRadius: "12px",
+        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
+    }
+  };
 
   useEffect(() => {
     fetchReportData();
@@ -62,6 +82,7 @@ export default function Reports() {
       const donationData = donateRes.data.data || [];
       const membersList = membersRes.data.data || [];
 
+      // Calculate Totals
       const totalExpenses = expenseData
         .filter(e => e.status === "approved")
         .reduce((sum, e) => sum + parseAmount(e.amount), 0);
@@ -69,19 +90,30 @@ export default function Reports() {
       const totalPuja = pujaData.reduce((sum, p) => sum + parseAmount(p.amount), 0);
       const totalDonations = donationData.reduce((sum, d) => sum + parseAmount(d.amount), 0);
       
+      // Fetch Subscriptions
       const subPromises = membersList.map(m => 
           api.get(`/subscriptions/member/${m.membershipId || m._id}`).catch(() => ({ data: { data: { subscription: null } } }))
       );
       const subResponses = await Promise.all(subPromises);
       
-      const totalSubscriptions = subResponses.reduce((sum, res) => {
+      let totalSubscriptions = 0;
+      const subDetails = [];
+
+      subResponses.forEach((res, index) => {
           const sub = res?.data?.data?.subscription;
-          return sum + parseAmount(sub?.totalPaid);
-      }, 0);
+          const memberName = membersList[index].name;
+          const paid = parseAmount(sub?.totalPaid);
+          
+          if (paid > 0) {
+              totalSubscriptions += paid;
+              subDetails.push({ name: memberName, amount: paid });
+          }
+      });
 
       const totalCollected = totalPuja + totalDonations + totalSubscriptions; 
       const openingBal = parseAmount(activeYear.openingBalance);
 
+      // Set State
       setSummary({
         opening: openingBal,
         collected: totalCollected,
@@ -90,13 +122,11 @@ export default function Reports() {
       });
 
       setExpenses(expenseData);
-      
-      setContributions([
-        { name: activeYear.subscriptionFrequency === 'monthly' ? "Monthly Collection" : "Weekly Collection", value: totalSubscriptions },
-        { name: "Members Contribution", value: totalPuja },
-        { name: "Donations", value: totalDonations },
-      ].filter(c => c.value > 0)); 
+      setRawDonations(donationData); // ✅ Store raw
+      setRawPuja(pujaData);          // ✅ Store raw
+      setRawSubs(subDetails);        // ✅ Store detailed list
 
+      // Trend Data
       const dateMap = {};
       [...pujaData, ...donationData].forEach(item => {
          const date = new Date(item.date || item.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' });
@@ -117,7 +147,6 @@ export default function Reports() {
     }
   };
 
-  // Prepare expense breakdown data
   const expenseBreakdown = useMemo(() => {
     const breakdown = expenses.reduce((acc, curr) => {
       const amt = parseAmount(curr.amount);
@@ -129,7 +158,7 @@ export default function Reports() {
 
     return Object.entries(breakdown)
       .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value); // Sort by highest expense
+      .sort((a, b) => b.value - a.value);
   }, [expenses]);
 
   const handleExport = () => {
@@ -137,19 +166,21 @@ export default function Reports() {
     setExporting(true);
 
     try {
+        // ✅ Pass FULL DATA to the export function
         exportFinancePDF({
             clubName: activeClub?.clubName || "Club Committee",
+            cycleName: cycle.name,
+            frequency: cycle.subscriptionFrequency,
             summary: [
                 { label: "Opening Balance", value: summary.opening },
                 { label: "Total Collected", value: summary.collected },
                 { label: "Total Expenses", value: summary.expenses },
                 { label: "Net Balance", value: summary.closing },
             ],
-            contributions: contributions.map(c => ({
-                type: c.name,
-                amount: c.value
-            })),
-            expenses: expenses.filter(e => e.status === "approved")
+            expenses: expenses.filter(e => e.status === "approved"),
+            donations: rawDonations,
+            puja: rawPuja,
+            subs: rawSubs
         });
     } catch (error) {
         console.error("Export failed", error);
@@ -172,8 +203,7 @@ export default function Reports() {
 
   return (
     <div className="space-y-8 pb-20 animate-fade-in">
-      
-      {/* 1. HEADER */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Financial Reports</h1>
@@ -184,42 +214,20 @@ export default function Reports() {
           disabled={exporting}
           leftIcon={exporting ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
         >
-          {exporting ? "Generating..." : "Download Snapshot"}
+          {exporting ? "Generating..." : "Download Full Report"}
         </Button>
       </div>
 
-      {/* 2. SUMMARY CARDS */}
+      {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          label="Opening Balance" 
-          amount={summary.opening} 
-          icon={Wallet} 
-          color="blue" 
-        />
-        <StatCard 
-          label="Total Collected" 
-          amount={summary.collected} 
-          icon={TrendingUp} 
-          color="emerald" 
-        />
-        <StatCard 
-          label="Total Expenses" 
-          amount={summary.expenses} 
-          icon={TrendingDown} 
-          color="rose" 
-        />
-        <StatCard 
-          label="Net Balance" 
-          amount={summary.closing} 
-          icon={IndianRupee} 
-          color="indigo" 
-        />
+        <StatCard label="Opening Balance" amount={summary.opening} icon={Wallet} color="blue" />
+        <StatCard label="Total Collected" amount={summary.collected} icon={TrendingUp} color="emerald" />
+        <StatCard label="Total Expenses" amount={summary.expenses} icon={TrendingDown} color="rose" />
+        <StatCard label="Net Balance" amount={summary.closing} icon={IndianRupee} color="indigo" />
       </div>
 
-      {/* 3. CHARTS ROW 1 */}
+      {/* CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* A. INCOME VS EXPENSE */}
         <Card className="min-h-[400px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
           <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
             <TrendingUp size={18} className="text-primary-600 dark:text-primary-400"/> Income vs Expense
@@ -233,13 +241,10 @@ export default function Reports() {
                 ]}
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `₹${Number(val)/1000}k`} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <Tooltip 
-                  cursor={{ fill: 'transparent' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff' }}
-                />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartStyles.gridStroke} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: chartStyles.text, fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `₹${Number(val)/1000}k`} tick={{fill: chartStyles.text, fontSize: 12}} />
+                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={chartStyles.tooltip} itemStyle={{ color: chartStyles.tooltip.color }} labelStyle={{ color: chartStyles.tooltip.color, fontWeight: 'bold' }} />
                 <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={50}>
                   <Cell fill="#10b981" />
                   <Cell fill="#f43f5e" />
@@ -249,7 +254,6 @@ export default function Reports() {
           </div>
         </Card>
 
-        {/* B. EXPENSE BREAKDOWN (PIE) */}
         <Card className="min-h-[400px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-full flex flex-col">
           <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
             <PieIcon size={18} className="text-primary-600 dark:text-primary-400"/> Expense Breakdown
@@ -259,25 +263,15 @@ export default function Reports() {
               <div className="h-[300px] flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie
-                      data={expenseBreakdown}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
+                    <Pie data={expenseBreakdown} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value">
                       {expenseBreakdown.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(val) => `₹${Number(val).toFixed(2)}`} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff' }} />
+                    <Tooltip formatter={(val) => `₹${Number(val).toFixed(2)}`} contentStyle={chartStyles.tooltip} itemStyle={{ color: chartStyles.tooltip.color }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-
-              {/* 🆕 EXPENSE LEGEND LIST */}
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="grid grid-cols-2 gap-3">
                   {expenseBreakdown.map((item, index) => (
@@ -303,7 +297,6 @@ export default function Reports() {
         </Card>
       </div>
 
-      {/* 4. CHART ROW 2: TRENDS */}
       <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
         <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-6">Daily Collection Trend (Last 14 Days)</h3>
         <div className="h-[300px]">
@@ -315,18 +308,11 @@ export default function Reports() {
                   <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-              <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff' }} />
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <Area 
-                type="monotone" 
-                dataKey="amount" 
-                stroke="#6366f1" 
-                fillOpacity={1} 
-                fill="url(#colorAmt)" 
-                strokeWidth={3}
-              />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: chartStyles.text, fontSize: 12}} />
+              <YAxis axisLine={false} tickLine={false} tick={{fill: chartStyles.text, fontSize: 12}} />
+              <Tooltip contentStyle={chartStyles.tooltip} itemStyle={{ color: chartStyles.tooltip.color }} labelStyle={{ color: chartStyles.tooltip.color, fontWeight: 'bold' }} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartStyles.gridStroke} />
+              <Area type="monotone" dataKey="amount" stroke="#6366f1" fillOpacity={1} fill="url(#colorAmt)" strokeWidth={3} />
             </AreaChart>
           </ResponsiveContainer>
         </div>

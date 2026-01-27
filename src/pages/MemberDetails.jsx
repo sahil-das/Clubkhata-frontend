@@ -6,7 +6,7 @@ import { useToast } from "../context/ToastContext";
 import { 
   Phone, Calendar, Shield, ArrowLeft, Loader2, Plus, 
   CheckCircle, IndianRupee, CreditCard, AlertCircle, 
-  Mail, Hash, ShieldCheck, Lock, ChevronDown, ChevronUp
+  Mail, Hash, ShieldCheck, Lock, ChevronDown, ChevronUp, Gift // 👈 Import Gift Icon
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -69,7 +69,7 @@ export default function MemberDetails() {
         email: data.member?.email || "No Email",
         personalEmail: data.member?.personalEmail || "N/A",
         joinedYear: data.year?.name,
-        joinedAt: data.member?.joinedAt // 👈 Added createdAt to state
+        joinedAt: data.member?.joinedAt 
       });
 
       setSubscription(data.subscription);
@@ -189,7 +189,6 @@ export default function MemberDetails() {
                    <div className="flex items-center gap-2">
                         <Mail size={14} className="text-slate-400 dark:text-slate-500 shrink-0"/> <span className="truncate max-w-[200px] text-slate-700 dark:text-slate-300">{member.personalEmail}</span>
                    </div>
-                   {/* 🆕 Added Joined Date */}
                    {member.joinedAt && (
                      <div className="flex items-center gap-2">
                         <Calendar size={14} className="text-slate-400 dark:text-slate-500 shrink-0"/> 
@@ -205,7 +204,7 @@ export default function MemberDetails() {
              <div className="flex gap-3 w-full md:w-auto mt-4 md:mt-0">
                  {!isYearClosed && activeClub?.role === "admin" && (
                     <Button onClick={() => setShowChandaModal(true)} leftIcon={<Plus size={18} />} className="shadow-lg shadow-indigo-200 dark:shadow-none w-full md:w-auto">
-                        Add Fee
+                        Add Contribution
                     </Button>
                  )}
              </div>
@@ -319,12 +318,12 @@ export default function MemberDetails() {
                 <Card className="min-h-[300px]">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                        <IndianRupee className="text-rose-500 dark:text-rose-400" size={18} /> Festival Payments
+                        <IndianRupee className="text-rose-500 dark:text-rose-400" size={18} /> Contributions
                         </h3>
                     </div>
                     {chandaHistory.length === 0 ? (
                         <div className="text-center py-8 text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                            <p className="text-xs font-medium">No extra fees recorded.</p>
+                            <p className="text-xs font-medium">No contributions recorded.</p>
                         </div>
                     ) : (
                         <div className="space-y-0 relative">
@@ -334,10 +333,28 @@ export default function MemberDetails() {
                                 <div className="absolute left-2 top-4 w-3.5 h-3.5 bg-white dark:bg-slate-700 border-2 border-rose-200 dark:border-rose-900/50 rounded-full group-hover:border-rose-500 transition-colors" />
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Festival Payment</p>
+                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                            {fee.type === 'item' ? 'Item Contribution' : 'Festival Payment'}
+                                        </p>
                                         <p className="text-[10px] text-slate-400 dark:text-slate-500">{new Date(fee.createdAt).toLocaleDateString()}</p>
                                     </div>
-                                    <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md border border-emerald-100 dark:border-emerald-900/30">+ ₹{parseAmount(fee.amount)}</span>
+                                    
+                                    {/* ✅ FIXED: Handle Item vs Cash Display */}
+                                    {fee.type === 'item' ? (
+                                         <div className="flex flex-col items-end">
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                                                <Gift size={12} className="text-rose-500"/> 
+                                                {fee.itemDetails?.itemName}
+                                            </span>
+                                            {fee.itemDetails?.quantity && (
+                                                <span className="text-[10px] text-slate-400">Qty: {fee.itemDetails.quantity}</span>
+                                            )}
+                                         </div>
+                                    ) : (
+                                        <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md border border-emerald-100 dark:border-emerald-900/30">
+                                            + ₹{parseAmount(fee.amount)}
+                                        </span>
+                                    )}
                                 </div>
                                 {fee.notes && <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 italic">"{fee.notes}"</p>}
                             </div>
