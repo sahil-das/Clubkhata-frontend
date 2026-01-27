@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+// 1. ✅ Import useTheme
 import { useTheme } from "../context/ThemeContext"; 
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -24,6 +25,8 @@ const parseAmount = (val) => {
 
 export default function Reports() {
   const { activeClub } = useAuth();
+  
+  // 2. ✅ Get Theme State
   const { isDark } = useTheme(); 
 
   const [loading, setLoading] = useState(true);
@@ -42,8 +45,9 @@ export default function Reports() {
 
   const COLORS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#3b82f6", "#14b8a6"];
 
+  // 3. ✅ Define Dynamic Chart Styles
   const chartStyles = {
-    gridStroke: isDark ? "#334155" : "#e2e8f0",
+    gridStroke: isDark ? "#334155" : "#e2e8f0", // Darker grid in dark mode
     text: isDark ? "#94a3b8" : "#64748b",
     tooltip: {
         backgroundColor: isDark ? "#1e293b" : "#ffffff",
@@ -241,10 +245,16 @@ export default function Reports() {
                 ]}
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
+                {/* 4. ✅ Use Dynamic Styles for Grid, Axis, and Tooltip */}
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartStyles.gridStroke} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: chartStyles.text, fontSize: 12}} />
                 <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `₹${Number(val)/1000}k`} tick={{fill: chartStyles.text, fontSize: 12}} />
-                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={chartStyles.tooltip} itemStyle={{ color: chartStyles.tooltip.color }} labelStyle={{ color: chartStyles.tooltip.color, fontWeight: 'bold' }} />
+                <Tooltip 
+                  cursor={{ fill: 'transparent' }}
+                  contentStyle={chartStyles.tooltip}
+                  itemStyle={{ color: chartStyles.tooltip.color }} // Ensures list text is visible
+                  labelStyle={{ color: chartStyles.tooltip.color, fontWeight: 'bold' }} // Ensures title is visible
+                />
                 <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={50}>
                   <Cell fill="#10b981" />
                   <Cell fill="#f43f5e" />
@@ -268,10 +278,15 @@ export default function Reports() {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(val) => `₹${Number(val).toFixed(2)}`} contentStyle={chartStyles.tooltip} itemStyle={{ color: chartStyles.tooltip.color }} />
+                    <Tooltip 
+                        formatter={(val) => `₹${Number(val).toFixed(2)}`} 
+                        contentStyle={chartStyles.tooltip}
+                        itemStyle={{ color: chartStyles.tooltip.color }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
+
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="grid grid-cols-2 gap-3">
                   {expenseBreakdown.map((item, index) => (
@@ -310,9 +325,20 @@ export default function Reports() {
               </defs>
               <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: chartStyles.text, fontSize: 12}} />
               <YAxis axisLine={false} tickLine={false} tick={{fill: chartStyles.text, fontSize: 12}} />
-              <Tooltip contentStyle={chartStyles.tooltip} itemStyle={{ color: chartStyles.tooltip.color }} labelStyle={{ color: chartStyles.tooltip.color, fontWeight: 'bold' }} />
+              <Tooltip 
+                contentStyle={chartStyles.tooltip}
+                itemStyle={{ color: chartStyles.tooltip.color }}
+                labelStyle={{ color: chartStyles.tooltip.color, fontWeight: 'bold' }}
+              />
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartStyles.gridStroke} />
-              <Area type="monotone" dataKey="amount" stroke="#6366f1" fillOpacity={1} fill="url(#colorAmt)" strokeWidth={3} />
+              <Area 
+                type="monotone" 
+                dataKey="amount" 
+                stroke="#6366f1" 
+                fillOpacity={1} 
+                fill="url(#colorAmt)" 
+                strokeWidth={3}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
