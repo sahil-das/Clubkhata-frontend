@@ -146,11 +146,19 @@ export const exportHistoryCyclePDF = ({
 
   y = doc.lastAutoTable.finalY + 15; 
 
-  // ✅ NEW: CONTRIBUTION BREAKDOWN TABLE
+  // ✅ NEW: CONTRIBUTION BREAKDOWN TABLE (Conditional)
   const totalSubs = weekly?.reduce((sum, w) => sum + (Number(w.total) || 0), 0) || 0;
   const totalPuja = puja?.reduce((sum, p) => sum + (Number(p.total) || 0), 0) || 0;
   const totalDonations = donations?.filter(d => d.type !== 'item').reduce((sum, d) => sum + (Number(d.amount) || 0), 0) || 0;
   const totalRevenue = totalSubs + totalPuja + totalDonations;
+
+  // ✅ Build Dynamic Body
+  const breakdownBody = [];
+  if (frequency !== 'none') {
+      breakdownBody.push([frequency === 'monthly' ? "Monthly Collections" : "Weekly Collections", formatCurrency(totalSubs)]);
+  }
+  breakdownBody.push(["Member Contributions", formatCurrency(totalPuja)]);
+  breakdownBody.push(["Donations", formatCurrency(totalDonations)]);
 
   doc.setFontSize(12); doc.setTextColor(...COLORS.text); doc.setFont(undefined, "bold");
   doc.text("Contribution Breakdown", margin, y + 4);
@@ -158,11 +166,7 @@ export const exportHistoryCyclePDF = ({
   autoTable(doc, {
       startY: y + 8,
       head: [["Source", "Total Collected"]],
-      body: [
-          [frequency === 'monthly' ? "Monthly Collections" : "Weekly Collections", formatCurrency(totalSubs)],
-          ["Member Contributions ", formatCurrency(totalPuja)],
-          ["Donations", formatCurrency(totalDonations)]
-      ],
+      body: breakdownBody,
       foot: [["Total Revenue", formatCurrency(totalRevenue)]],
       theme: "striped",
       headStyles: { fillColor: COLORS.success },
@@ -287,11 +291,19 @@ export const exportFinancePDF = ({ clubName = "Club", cycleName, frequency, summ
 
   y = doc.lastAutoTable.finalY + 15; 
 
-  // 2. ✅ NEW: CONTRIBUTION BREAKDOWN TABLE (Summary of Sources)
+  // 2. CONTRIBUTION BREAKDOWN TABLE (Conditional Row)
   const totalSubs = subs.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
   const totalPuja = puja.filter(p => p.type !== 'item').reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   const totalDonations = donations.filter(d => d.type !== 'item').reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
   const totalRevenue = totalSubs + totalPuja + totalDonations;
+
+  // ✅ Build Dynamic Body
+  const breakdownBody = [];
+  if (frequency !== 'none') {
+      breakdownBody.push([frequency === 'monthly' ? "Monthly Collections" : "Weekly Collections", formatCurrency(totalSubs)]);
+  }
+  breakdownBody.push(["Member Contributions", formatCurrency(totalPuja)]);
+  breakdownBody.push(["Donations", formatCurrency(totalDonations)]);
 
   doc.setFontSize(12); doc.setTextColor(...COLORS.text); doc.setFont(undefined, "bold");
   doc.text("Contribution Breakdown", margin, y + 4);
@@ -299,12 +311,8 @@ export const exportFinancePDF = ({ clubName = "Club", cycleName, frequency, summ
   autoTable(doc, {
       startY: y + 8,
       head: [["Source", "Total Collected"]],
-      body: [
-          [frequency === 'monthly' ? "Monthly Collections" : "Weekly Collections", formatCurrency(totalSubs)],
-          ["Member Contributions", formatCurrency(totalPuja)],
-          ["Donations", formatCurrency(totalDonations)]
-      ],
-      foot: [["Total", formatCurrency(totalRevenue)]],
+      body: breakdownBody,
+      foot: [["Total Revenue", formatCurrency(totalRevenue)]],
       theme: "striped",
       headStyles: { fillColor: COLORS.success },
       footStyles: { fillColor: [241, 245, 249], textColor: COLORS.text, fontStyle: 'bold', halign: 'right' },
@@ -351,7 +359,7 @@ export const exportFinancePDF = ({ clubName = "Club", cycleName, frequency, summ
     y = doc.lastAutoTable.finalY + 15;
   };
 
-  // 3. DETAILED LIST: SUBSCRIPTIONS
+  // 3. DETAILED LISTS
   if (subs && subs.length > 0 && frequency !== 'none') {
       const label = frequency === 'monthly' ? "Monthly Collection Details" : "Weekly Collection Details";
       addSection(label, ["Member Name", "Amount Paid"], 
@@ -361,7 +369,6 @@ export const exportFinancePDF = ({ clubName = "Club", cycleName, frequency, summ
       );
   }
 
-  // 4. DETAILED LIST: PUJA FEES
   if (puja && puja.length > 0) {
       const body = puja.map(p => {
           let val = formatCurrency(p.amount);
@@ -382,7 +389,6 @@ export const exportFinancePDF = ({ clubName = "Club", cycleName, frequency, summ
       );
   }
 
-  // 5. DETAILED LIST: DONATIONS
   if (donations && donations.length > 0) {
       const body = donations.map(d => {
           let val = formatCurrency(d.amount);
@@ -403,7 +409,6 @@ export const exportFinancePDF = ({ clubName = "Club", cycleName, frequency, summ
       );
   }
 
-  // 6. DETAILED LIST: EXPENSES
   if (expenses && expenses.length > 0) {
       const totalExpenses = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
       
